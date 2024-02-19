@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+qdrant-client = "*"
+sentence-transformers = "*"
+jupyter = "*"
+ipywidgets = "*"
+polars = {extras = ["all"] }
+pandas = "*"
+matplotlib = "*"
+scikit-learn = "*"
+scipy = "*"
+sympy = "*"
+fastembed = "*"
+plotly = "*"
+fastapi = "*"
+psycopg2 = "*"
+sqlalchemy = "*"
+
+[dev-packages]
+ipykernel = "*"
+
+[requires]
+python_version = "3.11"
