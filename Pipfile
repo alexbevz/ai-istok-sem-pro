@@ -4,8 +4,22 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-qdrant-client = "*"
-sentence-transformers = "*"
+sentence-transformers = "2.3.1"
+PyYAML = "6.0.1"
+
+uvicorn = "0.23.1"
+fastapi = "0.109.1"
+requests = "2.31.0"
+pydantic = "2.6.1"
+
+alembic = "1.13.1"
+sqlalchemy = "2.0.27"
+psycopg-binary = "3.1.18"
+
+qdrant-client = "1.7.3"
+
+[dev-packages]
+ipykernel = "*"
 jupyter = "*"
 ipywidgets = "*"
 polars = {extras = ["all"] }
@@ -16,12 +30,6 @@ scipy = "*"
 sympy = "*"
 fastembed = "*"
 plotly = "*"
-fastapi = "*"
-psycopg2 = "*"
-sqlalchemy = "*"
-
-[dev-packages]
-ipykernel = "*"
 
 [requires]
 python_version = "3.11"
