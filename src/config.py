@@ -9,6 +9,7 @@ class DatabaseConfig:
     db_port = os.getenv('DB_PORT', '5432')
     db_database_name = os.getenv('DB_DATABASE_NAME', 'ai-finder')
 
-    def get_url(self):
-        return (f'{self.db_driver}://'f'{self.db_user}:{self.db_password}@'
+    def get_url(self, sync: bool = False) -> str:
+        extra_args = '' if sync else '+asyncpg'
+        return (f'{self.db_driver}{extra_args}://'f'{self.db_user}:{self.db_password}@'
                 f'{self.db_host}:{self.db_port}/{self.db_database_name}')
