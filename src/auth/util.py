@@ -37,15 +37,9 @@ class JwtUtil:
         return token
 
     @classmethod
-    def decode_token(cls, token: str) -> dict | str:
+    def decode_token(cls, token: str) -> dict:
         payload = jwt.decode(token, cls.secret_key, algorithms=[cls.algorithm])
         return payload
-        # try:
-        #
-        # except jwt.ExpiredSignatureError:
-        #     return 'Token has expired. Please log in again.'
-        # except jwt.InvalidTokenError:
-        #     return 'Invalid token. Please log in again.'
 
     @classmethod
     def create_tokens(cls, payload: dict, *, headers: dict | None = None, ttl_access: int = JwtConfig.get_ttl_access(),

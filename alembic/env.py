@@ -12,7 +12,7 @@ from src.config import DatabaseConfig
 # access to the values within the .ini file in use.
 config = context.config
 
-db_url = DatabaseConfig().get_url(sync=True)
+db_url = DatabaseConfig.get_alembic_url()
 
 config.set_main_option('sqlalchemy.url', db_url)
 # Interpret the config file for Python logging.

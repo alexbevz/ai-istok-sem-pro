@@ -1,54 +1,39 @@
+import logging
+
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.repository import RoleRepository, UserRepository
-from src.auth.scheme import ModelRoleScheme, CreatingRoleScheme, UpdatingRoleScheme, ModelUserScheme, \
-    CreatingUserScheme, \
-    UpdatingUserScheme, PageScheme
+from src.auth.scheme import ModelRoleScheme, ModelUserScheme, CreatingUserScheme, UpdatingUserScheme, TokensScheme, \
+    LoginAuthScheme, RegisterAuthScheme
 from src.auth.model import User, Role
+from src.auth.util import BcryptUtil, JwtUtil
 from src.repository import Page
+from src.scheme import PageScheme
+from starlette import status
 
 
 class RoleService:
     role_rep: RoleRepository = RoleRepository()
 
     @classmethod
-    async def save(cls, save_role_schema: CreatingRoleScheme, db: AsyncSession) -> ModelRoleScheme:
-        saving_model = Role(**save_role_schema.model_dump())
-        saved_role = await cls.role_rep.create(model=saving_model, session=db)
-        return ModelRoleScheme.model_validate(saved_role, from_attributes=True)
+    async def get_all(cls, db: AsyncSession) -> list[Role]:
+        got_roles = await cls.role_rep.get_all(page=Page(), session=db)
+        return got_roles
 
     @classmethod
-    async def save_all(cls, all_save_role_schema: list[CreatingRoleScheme], db: AsyncSession) -> list[ModelRoleScheme]:
-        roles = [Role(**item.model_dump()) for item in all_save_role_schema]
-        saved_role_all = await cls.role_rep.create_all(models=roles, session=db)
-        return [ModelRoleScheme.model_validate(item, from_attributes=True) for item in saved_role_all]
+    async def get_model_scheme_all(cls, db: AsyncSession) -> list[ModelRoleScheme]:
+        got_roles = await cls.get_all(db)
+        model_role_schemes = [ModelRoleScheme.model_validate(item, from_attributes=True) for item in got_roles]
+        return model_role_schemes
 
     @classmethod
-    async def get_all(cls, page_schema: PageScheme, db: AsyncSession) -> list[ModelRoleScheme]:
-        got_roles = await cls.role_rep.get_all(page=Page(**page_schema.model_dump()), session=db)
-        return [ModelRoleScheme.model_validate(item, from_attributes=True) for item in got_roles]
+    async def get_all_by_id(cls, roles_id: list[int], db: AsyncSession) -> list[Role]:
+        got_roles = await cls.role_rep.get_all_by_id(models_id=roles_id, session=db)
+        return got_roles
 
-    @classmethod
-    async def get_by_id(cls, role_id: int, db: AsyncSession) -> ModelRoleScheme:
-        got_role = await cls.role_rep.get_by_id(model_id=role_id, session=db)
-        return ModelRoleScheme.model_validate(got_role, from_attributes=True)
 
-    @classmethod
-    async def update_by_id(cls, role_id: int, update_role_schema: UpdatingRoleScheme, db: AsyncSession) -> ModelRoleScheme:
-        updating_role = await cls.role_rep.get_by_id(model_id=role_id, session=db)
-        updating_role.update(update_role_schema.model_dump())
-        updated_role = await cls.role_rep.update(model=updating_role, session=db)
-        return ModelRoleScheme.model_validate(updated_role, from_attributes=True)
-
-    @classmethod
-    async def delete_by_id(cls, role_id: int, db: AsyncSession) -> ModelRoleScheme:
-        deleted_role = await cls.role_rep.delete_by_id(model_id=role_id, session=db)
-        return ModelRoleScheme.model_validate(deleted_role, from_attributes=True)
-
-    @classmethod
-    async def delete_all_by_id(cls, models_id: list[int], db: AsyncSession) -> list[ModelRoleScheme]:
-        deleted_roles = await cls.role_rep.delete_all_by_id(models_id=models_id, session=db)
-        return [ModelRoleScheme.model_validate(item, from_attributes=True) for item in deleted_roles]
+roleServ = RoleService()
 
 
 class UserService:
@@ -56,14 +41,21 @@ class UserService:
     role_rep: RoleRepository = RoleRepository()
 
     @classmethod
-    async def _create_user(cls, save_user_schema: CreatingUserScheme, db: AsyncSession) -> User:
-        roles = await cls.role_rep.get_all_by_id(models_id=save_user_schema.roles, session=db)
-        saving_user = User(**save_user_schema.model_dump(exclude={'roles': True}), roles=roles)
-        saved_user = await cls.user_rep.create(model=saving_user, session=db)
-        return saved_user
+    async def create(cls, creating_user_schema: CreatingUserScheme, db: AsyncSession) -> User:
+        roles = await cls.role_rep.get_all_by_id(models_id=creating_user_schema.roles, session=db)
+        saving_user = User(**creating_user_schema.model_dump(exclude={'roles': True}), roles=roles)
+        created_user = await cls.user_rep.create(model=saving_user, session=db)
+        return created_user
 
     @classmethod
-    async def _update_user_by_id(cls, user_id: int, update_user_schema: UpdatingUserScheme, db: AsyncSession) -> User:
+    async def create_and_get_model_scheme(cls, creating_user_schema: CreatingUserScheme,
+                                          db: AsyncSession) -> ModelUserScheme:
+        created_user = cls.create(creating_user_schema, db)
+        model_user_scheme = ModelUserScheme.model_validate(created_user, from_attributes=True)
+        return model_user_scheme
+
+    @classmethod
+    async def update_by_id(cls, user_id: int, update_user_schema: UpdatingUserScheme, db: AsyncSession) -> User:
         roles = await cls.role_rep.get_all_by_id(models_id=update_user_schema.roles, session=db)
         updating_user = await cls.user_rep.get_by_id(model_id=user_id, session=db)
         model_data = update_user_schema.model_dump(exclude={'roles': True})
@@ -73,18 +65,19 @@ class UserService:
         return updated_user
 
     @classmethod
-    async def save(cls, save_user_schema: CreatingUserScheme, db: AsyncSession) -> ModelUserScheme:
-        saved_user = await cls._create_user(save_user_schema, db)
-        return ModelUserScheme.model_validate(saved_user, from_attributes=True)
-
-    @classmethod
-    async def update_by_id(cls, user_id: int, update_user_schema: UpdatingUserScheme, db: AsyncSession):
-        updated_user = await cls._update_user_by_id(user_id, update_user_schema, db)
+    async def update_by_id_and_get_model_scheme(cls, user_id: int, updating_user_schema: UpdatingUserScheme,
+                                                db: AsyncSession) -> ModelUserScheme:
+        updated_user = await cls.update_by_id(user_id, updating_user_schema, db)
         return ModelUserScheme.model_validate(updated_user, from_attributes=True)
 
     @classmethod
-    async def get_all(cls, page_schema: PageScheme, db: AsyncSession) -> list[ModelUserScheme]:
+    async def get_all(cls, page_schema: PageScheme, db: AsyncSession) -> list[User]:
         got_users = await cls.user_rep.get_all(page=Page(**page_schema.model_dump()), session=db)
+        return got_users
+
+    @classmethod
+    async def get_model_scheme_all(cls, page_schema: PageScheme, db: AsyncSession) -> list[ModelUserScheme]:
+        got_users = await cls.get_all(page_schema, db)
         return [ModelUserScheme.model_validate(item, from_attributes=True) for item in got_users]
 
     @classmethod
@@ -98,12 +91,22 @@ class UserService:
         return ModelUserScheme.model_validate(got_user, from_attributes=True)
 
     @classmethod
-    async def delete_by_id(cls, user_id: int, db: AsyncSession) -> ModelUserScheme:
+    async def get_by_username(cls, username: str, db: AsyncSession) -> User:
+        got_user = await cls.user_rep.get_by_unique_field(field=User.username, value=username, session=db)
+        return got_user
+
+    @classmethod
+    async def delete_by_id(cls, user_id: int, db: AsyncSession) -> User:
         deleting_user = await cls.user_rep.get_by_id(model_id=user_id, session=db)
         roles = deleting_user.roles.copy()
         deleting_user.roles.clear()
         deleted_user = await cls.user_rep.delete(model=deleting_user, session=db)
         deleted_user.roles = roles
+        return deleted_user
+
+    @classmethod
+    async def delete_by_id_and_get_model_scheme(cls, user_id: int, db: AsyncSession) -> ModelUserScheme:
+        deleted_user = await cls.delete_by_id(user_id, db)
         return ModelUserScheme.model_validate(deleted_user, from_attributes=True, )
 
 
@@ -111,18 +114,71 @@ userServ = UserService()
 
 
 class AuthService:
+    # TODO and FIXME
+    access_tokens = set()
+    refresh_tokens = set()
+    access_refresh_tokens = dict()
 
     @classmethod
-    async def authenticate(cls):
-        pass
+    async def register(cls, register_auth_scheme: RegisterAuthScheme, db: AsyncSession) -> ModelUserScheme:
+        encrypted_password = BcryptUtil.hash_password(register_auth_scheme.password)
+        creating_user_scheme = CreatingUserScheme.model_validate({
+            'username': register_auth_scheme.username,
+            'password': encrypted_password,
+            'email': register_auth_scheme.email,
+            'roles': [2],
+        })
+        registered_user = await userServ.create_and_get_model_scheme(creating_user_scheme, db)
+        return registered_user
 
     @classmethod
-    async def is_authenticated(cls):
-        pass
+    async def login(cls, login_auth_scheme: LoginAuthScheme, db: AsyncSession) -> TokensScheme:
+        logining_user = await userServ.get_by_username(login_auth_scheme.username, db)
+        if not BcryptUtil.verify_password(login_auth_scheme.password, logining_user.password):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Incorrect password or username')
+
+        model_user_scheme = ModelUserScheme.model_validate(logining_user, from_attributes=True)
+        payload = model_user_scheme.model_dump()
+        access_token, refresh_token = JwtUtil.create_tokens(payload)
+        tokens_scheme = TokensScheme(access_token=access_token, refresh_token=refresh_token)
+        cls.access_tokens.add(access_token)
+        cls.refresh_tokens.add(refresh_token)
+        cls.access_refresh_tokens.update({access_token: refresh_token})
+        return tokens_scheme
 
     @classmethod
-    async def get_user_by_token(cls, db: AsyncSession) -> User:
-        return await userServ.get_by_id(1, db)
+    async def logout(cls, access_token: str) -> None:
+        refresh_token = cls.access_refresh_tokens.get(access_token)
+
+        if not refresh_token:
+            raise HTTPException(status_code=401)
+
+        del cls.access_refresh_tokens[access_token]
+        cls.refresh_tokens.remove(refresh_token)
+        cls.access_tokens.remove(access_token)
+
+    @classmethod
+    async def is_authenticated(cls, access_token: str) -> bool:
+        try:
+            JwtUtil.decode_token(access_token)
+        except Exception as e:
+            logging.error(e)
+            return False
+        return access_token in cls.access_tokens
+
+    @classmethod
+    async def get_user_by_token(cls, token: str, db: AsyncSession) -> User:
+        if token not in cls.access_tokens:
+            raise HTTPException(status_code=403, detail='Token is invalid')
+
+        try:
+            user_data = JwtUtil.decode_token(token)
+        except Exception as e:
+            raise HTTPException(status_code=403, detail='Token is invalid')
+
+        user_id = user_data.get('id')
+        got_user = await userServ.get_by_id(user_id, db)
+        return got_user
 
 
 authServ = AuthService()

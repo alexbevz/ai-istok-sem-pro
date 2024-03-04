@@ -25,7 +25,7 @@ class Role(BaseModel):
 class User(BaseModel):
     __tablename__ = 'user'
 
-    username = Column(String(32))
+    username = Column(String(32), unique=True)
     password = Column(String())
     email = Column(String(32), nullable=True, unique=True)
 

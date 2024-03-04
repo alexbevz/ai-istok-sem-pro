@@ -11,7 +11,7 @@ class Page:
     offset: int = 0
     limit: int = 20
 
-    def __init__(self, offset: int, limit: int):
+    def __init__(self, offset: int = 0, limit: int = 20):
         self.offset: int = offset
         self.limit: int = limit
 
