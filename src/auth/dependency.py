@@ -23,13 +23,18 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
     return got_user
 
 
-async def check_role(user: Annotated[User, Depends(get_current_user)], required_roles: set[str]) -> None:
-    user_roles = set()
+class RoleChecker:
 
-    for role in user.roles:
-        user_roles.add(role.name)
+    def __init__(self, required_roles: set[str], ):
+        self.required_roles = required_roles
 
-    is_check = required_roles.issubset(user_roles)
+    def __call__(self, user: Annotated[User, get_current_user]) -> None:
+        user_roles = set()
 
-    if not is_check:
-        raise HttpForbiddenException()
+        for role in user.roles:
+            user_roles.add(role.name)
+
+        is_check = self.required_roles.issubset(user_roles)
+
+        if not is_check:
+            raise HttpForbiddenException()

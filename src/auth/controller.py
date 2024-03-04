@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from scheme import CreatingRoleScheme, UpdatingRoleScheme, CreatingUserScheme, UpdatingUserScheme
-from src.auth.dependency import get_current_user, check_role
+from src.auth.dependency import get_current_user, RoleChecker
 from src.auth.model import User
 from src.auth.service import RoleService as roleServ, UserService as userServ
 from src.database import get_session_db
@@ -13,12 +13,13 @@ from src.scheme import PageScheme
 
 class RoleRouter(APIRouter):
     def __init__(self):
-        super().__init__(prefix='/roles', tags=['Роли'], dependencies=[Depends(check_role)])
+        super().__init__(prefix='/roles', tags=['Роли'], dependencies=[Depends(RoleChecker({'admin'}))])
         self.add_api_route(endpoint=self.save, path='/', methods=['POST'])
         self.add_api_route(endpoint=self.save_all, path='/all', methods=['POST'])
         self.add_api_route(endpoint=self.update_by_id, path='/{role_id}', methods=['PATCH'])
         self.add_api_route(endpoint=self.get_all, path='/all', methods=['GET'], dependencies=[Depends(PageScheme)])
-        self.add_api_route(endpoint=self.get_by_id, path='/{role_id}', methods=['GET'])
+        self.add_api_route(endpoint=self.get_by_id, path='/{role_id}', methods=['GET'],
+                           dependencies=[Depends(RoleChecker({'user'}))])
         self.add_api_route(endpoint=self.delete_all_by_id, path='/all', methods=['DELETE'])
         self.add_api_route(endpoint=self.delete_by_id, path='/{role_id}', methods=['DELETE'])
 
@@ -88,7 +89,7 @@ class UserRouter(APIRouter):
 
     @classmethod
     async def get_by_id(cls, user_id: int, db: AsyncSession = Depends(get_session_db)):
-        got_user = await userServ.get_by_id(user_id, db)
+        got_user = await userServ.get_model_scheme_by_id(user_id, db)
         return got_user
 
     @classmethod

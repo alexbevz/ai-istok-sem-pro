@@ -1,7 +1,7 @@
-import pydantic
+from pydantic import BaseModel
 
 
-class BaseScheme(pydantic.BaseModel):
+class BaseScheme(BaseModel):
     pass
 
 

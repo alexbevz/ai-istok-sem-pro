@@ -1,10 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repository import RoleRepository, UserRepository
-from scheme import ModelRoleScheme, CreatingRoleScheme, UpdatingRoleScheme, PageScheme, ModelUserScheme, CreatingUserScheme, \
+from scheme import ModelRoleScheme, CreatingRoleScheme, UpdatingRoleScheme, ModelUserScheme, CreatingUserScheme, \
     UpdatingUserScheme
 from src.auth.model import User, Role
 from src.repository import Page
+from src.scheme import PageScheme
 
 
 class RoleService:
@@ -87,8 +88,13 @@ class UserService:
         return [ModelUserScheme.model_validate(item, from_attributes=True) for item in got_users]
 
     @classmethod
-    async def get_by_id(cls, user_id: int, db: AsyncSession) -> ModelUserScheme:
+    async def get_by_id(cls, user_id: int, db: AsyncSession) -> User:
         got_user = await cls.user_rep.get_by_id(model_id=user_id, session=db)
+        return got_user
+
+    @classmethod
+    async def get_model_scheme_by_id(cls, user_id: int, db: AsyncSession) -> ModelUserScheme:
+        got_user = await cls.get_by_id(user_id, db)
         return ModelUserScheme.model_validate(got_user, from_attributes=True)
 
     @classmethod
@@ -99,6 +105,9 @@ class UserService:
         deleted_user = await cls.user_rep.delete(model=deleting_user, session=db)
         deleted_user.roles = roles
         return ModelUserScheme.model_validate(deleted_user, from_attributes=True, )
+
+
+userServ = UserService()
 
 
 class AuthService:
@@ -112,8 +121,8 @@ class AuthService:
         pass
 
     @classmethod
-    async def get_user_by_token(cls):
-        pass
+    async def get_user_by_token(cls, db: AsyncSession) -> User:
+        return await userServ.get_by_id(1, db)
 
 
 authServ = AuthService()
