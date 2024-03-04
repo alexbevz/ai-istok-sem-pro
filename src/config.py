@@ -1,10 +1,13 @@
 import os
-
+from urllib.parse import quote
 
 class DatabaseConfig:
+    """
+    FIXME: вынести метод экранирования отдельно
+    """
     db_driver = os.getenv('DB_DRIVER', 'postgresql')
     db_user = os.getenv('DB_USER', 'postgres')
-    db_password = os.getenv('DB_PASSWORD', 'postgres')
+    db_password = quote(os.getenv('DB_PASSWORD', 'postgres')).replace("%", "%%")
     db_host = os.getenv('DB_HOST', 'localhost')
     db_port = os.getenv('DB_PORT', '5432')
     db_database_name = os.getenv('DB_DATABASE_NAME', 'ai-finder')
