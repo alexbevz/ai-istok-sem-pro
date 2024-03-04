@@ -1,52 +1,59 @@
-import pydantic
+from src.scheme import BaseScheme
 
 
-class BaseModel(pydantic.BaseModel):
-    pass
-
-
-class PageSchema(BaseModel):
-    offset: int = 0
-    limit: int = 20
-
-
-class IdSchema(BaseModel):
-    id: int
-
-
-class BaseRoleSchema(BaseModel):
+class BaseRoleScheme(BaseScheme):
     name: str
 
 
-class SaveRoleSchema(BaseRoleSchema):
+class CreatingRoleScheme(BaseRoleScheme):
     pass
 
 
-class UpdateRoleSchema(SaveRoleSchema):
+class UpdatingRoleScheme(BaseRoleScheme):
     pass
 
 
-class ModelRoleSchema(BaseRoleSchema):
+class ModelRoleScheme(BaseRoleScheme):
     id: int
 
-    class Config:
-        fields = {'users': {'exclude': True}}
 
-
-class BaseUserSchema(BaseModel):
+class BaseUserScheme(BaseScheme):
     username: str
     password: str
     email: str
 
 
-class SaveUserSchema(BaseUserSchema):
+class CreatingUserScheme(BaseUserScheme):
     roles: list[int]
 
 
-class UpdateUserSchema(SaveUserSchema):
+class UpdatingUserScheme(BaseUserScheme):
+    roles: list[int]
+
+
+class ModelUserScheme(BaseUserScheme):
+    id: int
+    roles: list[ModelRoleScheme]
+
+
+class BaseAuthScheme(BaseScheme):
+    username: str
+    password: str
+
+
+class LoginAuthScheme(BaseAuthScheme):
     pass
 
 
-class ModelUserSchema(BaseUserSchema):
-    id: int
-    roles: list[ModelRoleSchema]
+class RegisterAuthScheme(BaseAuthScheme):
+    email: str = None
+
+
+class TokensScheme(BaseScheme):
+    access_token: str
+    refresh_token: str
+
+
+class RefreshTokenScheme(BaseScheme):
+    access_token: str
+

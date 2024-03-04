@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 
-from src.auth.controller import userRouter, roleRouter, authRouter
+from src.auth.router import userRouter, roleRouter, authRouter
 
 app = FastAPI(root_path='/api/v0')
 

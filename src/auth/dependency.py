@@ -4,12 +4,12 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.exception import InvalidAccessTokenException
+from src.auth.exception import InvalidAccessTokenException, HttpForbiddenException
 from src.auth.model import User
 from src.database import get_session_db
 from src.auth.service import authServ
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
@@ -21,3 +21,15 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
     if got_user is None:
         raise InvalidAccessTokenException()
     return got_user
+
+
+async def check_role(user: Annotated[User, Depends(get_current_user)], required_roles: set[str]) -> None:
+    user_roles = set()
+
+    for role in user.roles:
+        user_roles.add(role.name)
+
+    is_check = required_roles.issubset(user_roles)
+
+    if not is_check:
+        raise HttpForbiddenException()

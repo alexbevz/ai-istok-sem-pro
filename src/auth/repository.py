@@ -3,7 +3,7 @@ from typing import Type, Any, Sequence
 
 from src.repository import CrudRepository
 from src.auth.model import Role, User, UserRole
-from src.auth.scheme import PageSchema
+from src.auth.scheme import PageScheme
 from src.database import get_session_db
 from sqlalchemy import select, Row, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,7 +36,7 @@ class UserRepository(CrudRepository, cls_model=User):
 #         return role
 #
 #     @staticmethod
-#     async def get_all(page: PageSchema) -> Sequence[Row[tuple[Any, ...] | Any]]:
+#     async def get_all(page: PageScheme) -> Sequence[Row[tuple[Any, ...] | Any]]:
 #         async with await get_session_db() as session:
 #             rows = await session.execute(
 #                 select(Role)
@@ -85,7 +85,7 @@ class UserRepository(CrudRepository, cls_model=User):
 #     return role
 #
 # @staticmethod
-# async def get_all(page: PageSchema) -> Sequence[Row[tuple[Any, ...] | Any]]:
+# async def get_all(page: PageScheme) -> Sequence[Row[tuple[Any, ...] | Any]]:
 #     async with await get_session_db() as session:
 #         rows = await session.execute(
 #             select(Role)
