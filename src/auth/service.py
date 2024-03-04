@@ -1,11 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from repository import RoleRepository, UserRepository
-from scheme import ModelRoleScheme, CreatingRoleScheme, UpdatingRoleScheme, ModelUserScheme, CreatingUserScheme, \
-    UpdatingUserScheme
+from src.auth.repository import RoleRepository, UserRepository
+from src.auth.scheme import ModelRoleScheme, CreatingRoleScheme, UpdatingRoleScheme, ModelUserScheme, \
+    CreatingUserScheme, \
+    UpdatingUserScheme, PageScheme
 from src.auth.model import User, Role
 from src.repository import Page
-from src.scheme import PageScheme
 
 
 class RoleService:

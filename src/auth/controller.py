@@ -3,12 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from scheme import CreatingRoleScheme, UpdatingRoleScheme, CreatingUserScheme, UpdatingUserScheme
+from src.auth.scheme import CreatingRoleScheme, UpdatingRoleScheme, CreatingUserScheme, UpdatingUserScheme, PageScheme, \
+    ModelRoleScheme
 from src.auth.dependency import get_current_user, RoleChecker
 from src.auth.model import User
 from src.auth.service import RoleService as roleServ, UserService as userServ
 from src.database import get_session_db
-from src.scheme import PageScheme
 
 
 class RoleRouter(APIRouter):
@@ -25,7 +25,7 @@ class RoleRouter(APIRouter):
 
     @classmethod
     async def save(cls, creating_role_schema: CreatingRoleScheme, auth_user: Annotated[User, Depends(get_current_user)],
-                   db: AsyncSession = Depends(get_session_db)):
+                   db: AsyncSession = Depends(get_session_db)) -> ModelRoleScheme:
         role_schema = await roleServ.save(creating_role_schema, db)
         print(auth_user)
         return role_schema

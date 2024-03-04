@@ -1,12 +1,5 @@
-import asyncio
-from typing import Type, Any, Sequence
-
 from src.repository import CrudRepository
 from src.auth.model import Role, User, UserRole
-from src.auth.scheme import PageScheme
-from src.database import get_session_db
-from sqlalchemy import select, Row, delete
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class RoleRepository(CrudRepository, cls_model=Role):

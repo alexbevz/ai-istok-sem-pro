@@ -28,7 +28,7 @@ class RoleChecker:
     def __init__(self, required_roles: set[str], ):
         self.required_roles = required_roles
 
-    def __call__(self, user: Annotated[User, get_current_user]) -> None:
+    async def __call__(self, user: Annotated[User, Depends(get_current_user)]) -> None:
         user_roles = set()
 
         for role in user.roles:

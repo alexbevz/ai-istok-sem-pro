@@ -1,15 +1,8 @@
-from typing import Callable, Annotated
-
 import bcrypt
 import jwt
 from datetime import datetime, timedelta
 
-from fastapi import Depends
-
 from src.auth.config import JwtConfig
-from src.auth.dependency import get_current_user
-from src.auth.exception import HttpForbiddenException
-from src.auth.model import User
 
 
 class BcryptUtil:
