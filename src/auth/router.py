@@ -68,8 +68,8 @@ class AuthRouter(APIRouter):
         self.add_api_route(endpoint=self.register, path='/register', methods=['POST'], )
         self.add_api_route(endpoint=self.login, path='/login', methods=['POST'], )
         self.add_api_route(endpoint=self.check, path='/check', methods=['POST'], )
-        # self.add_api_route(endpoint=self.update_access_token, path='/tokens/access', methods=['POST'], )
-        # self.add_api_route(endpoint=self.update_refresh_token, path='/tokens/refresh', methods=['POST'], )
+        self.add_api_route(endpoint=self.update_access_token, path='/tokens/access', methods=['POST'], )
+        self.add_api_route(endpoint=self.update_refresh_token, path='/tokens/refresh', methods=['POST'], )
         self.add_api_route(endpoint=self.logout, path='/logout', methods=['POST'], )
 
     @classmethod
@@ -87,12 +87,14 @@ class AuthRouter(APIRouter):
         await authServ.is_authenticated(token)
 
     @classmethod
-    async def update_access_token(cls):
-        pass
+    async def update_access_token(cls, token: Annotated[str, Depends(oauth2_scheme)]) -> str:
+        new_token = await authServ.update_access_token(token)
+        return new_token
 
     @classmethod
-    async def update_refresh_token(cls):
-        pass
+    async def update_refresh_token(cls, token: Annotated[str, Depends(oauth2_scheme)]) -> str:
+        new_token = await authServ.update_refresh_token(token)
+        return new_token
 
     @classmethod
     async def logout(cls, token: Annotated[str, Depends(oauth2_scheme)]):

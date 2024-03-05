@@ -177,6 +177,42 @@ class AuthService:
         user_id = user_data.get('id')
         got_user = await userServ.get_by_id(user_id, db)
         return got_user
+    
+    @classmethod
+    async def update_access_token(cls, refresh_token: str) -> str:
+        if refresh_token not in cls.refresh_tokens:
+            raise HTTPException(status_code=403, detail='Token is invalid')
+
+        try:
+            user_data = JwtUtil.decode_token(refresh_token)
+        except Exception as e:
+            raise HTTPException(status_code=403, detail='Token is invalid')
+
+        user_id = user_data.get('id')
+        got_user = await userServ.get_by_id(user_id)
+        model_user_scheme = ModelUserScheme.model_validate(got_user, from_attributes=True)
+        payload = model_user_scheme.model_dump()
+        access_token, _ = JwtUtil.create_tokens(payload)
+        cls.access_tokens.add(access_token)
+        return access_token
+    
+    @classmethod
+    async def update_refresh_token(cls, refresh_token: str) -> str:
+        if refresh_token not in cls.refresh_tokens:
+            raise HTTPException(status_code=403, detail='Token is invalid')
+
+        try:
+            user_data = JwtUtil.decode_token(refresh_token)
+        except Exception as e:
+            raise HTTPException(status_code=403, detail='Token is invalid')
+
+        user_id = user_data.get('id')
+        got_user = await userServ.get_by_id(user_id)
+        model_user_scheme = ModelUserScheme.model_validate(got_user, from_attributes=True)
+        payload = model_user_scheme.model_dump()
+        _, new_refresh_token = JwtUtil.create_tokens(payload)
+        cls.refresh_tokens.add(new_refresh_token)
+        return new_refresh_token
 
 
 authServ = AuthService()
