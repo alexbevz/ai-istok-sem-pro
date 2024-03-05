@@ -18,7 +18,7 @@ class RoleRouter(APIRouter):
 
     @classmethod
     async def get_all(cls, db: AsyncSession = Depends(get_session_db)):
-        roles_schema = await roleServ.get_all(db)
+        roles_schema = await roleServ.get_model_scheme_all(db)
         return roles_schema
 
 
