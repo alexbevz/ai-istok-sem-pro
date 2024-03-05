@@ -1,18 +1,16 @@
+from src.repository import CrudRepository
+from src.auth.model import Role, User
 
 
-class UserRepository:
+class RoleRepository(CrudRepository, cls_model=Role):
+    pass
 
-    def save(self):
-        pass
 
-    def get_by_id(self):
-        pass
+roleRep = RoleRepository()
 
-    def get_by_username(self, username):
-        pass
 
-    def update(self):
-        pass
+class UserRepository(CrudRepository, cls_model=User):
+    pass
 
-    def delete(self):
-        pass
+
+userRep = UserRepository()
