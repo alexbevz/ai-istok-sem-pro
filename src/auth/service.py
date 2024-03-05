@@ -3,7 +3,7 @@ import logging
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.repository import RoleRepository, UserRepository
+from src.auth.repository import roleRep, userRep
 from src.auth.scheme import ModelRoleScheme, ModelUserScheme, CreatingUserScheme, UpdatingUserScheme, TokensScheme, \
     LoginAuthScheme, RegisterAuthScheme
 from src.auth.model import User, Role
@@ -14,11 +14,10 @@ from starlette import status
 
 
 class RoleService:
-    role_rep: RoleRepository = RoleRepository()
 
     @classmethod
     async def get_all(cls, db: AsyncSession) -> list[Role]:
-        got_roles = await cls.role_rep.get_all(page=Page(), session=db)
+        got_roles = await roleRep.get_all(page=Page(), session=db)
         return got_roles
 
     @classmethod
@@ -29,7 +28,7 @@ class RoleService:
 
     @classmethod
     async def get_all_by_id(cls, roles_id: list[int], db: AsyncSession) -> list[Role]:
-        got_roles = await cls.role_rep.get_all_by_id(models_id=roles_id, session=db)
+        got_roles = await roleRep.get_all_by_id(models_id=roles_id, session=db)
         return got_roles
 
 
@@ -37,14 +36,12 @@ roleServ = RoleService()
 
 
 class UserService:
-    user_rep: UserRepository = UserRepository()
-    role_rep: RoleRepository = RoleRepository()
 
     @classmethod
     async def create(cls, creating_user_schema: CreatingUserScheme, db: AsyncSession) -> User:
-        roles = await cls.role_rep.get_all_by_id(models_id=creating_user_schema.roles, session=db)
+        roles = await roleServ.get_all_by_id(creating_user_schema.roles, db)
         saving_user = User(**creating_user_schema.model_dump(exclude={'roles': True}), roles=roles)
-        created_user = await cls.user_rep.create(model=saving_user, session=db)
+        created_user = await userRep.create(model=saving_user, session=db)
         return created_user
 
     @classmethod
@@ -56,12 +53,12 @@ class UserService:
 
     @classmethod
     async def update_by_id(cls, user_id: int, update_user_schema: UpdatingUserScheme, db: AsyncSession) -> User:
-        roles = await cls.role_rep.get_all_by_id(models_id=update_user_schema.roles, session=db)
-        updating_user = await cls.user_rep.get_by_id(model_id=user_id, session=db)
+        roles = await roleServ.get_all_by_id(update_user_schema.roles, db)
+        updating_user = await userRep.get_by_id(model_id=user_id, session=db)
         model_data = update_user_schema.model_dump(exclude={'roles': True})
         model_data['roles'] = roles
         updating_user.update(model_data)
-        updated_user = await cls.user_rep.update(model=updating_user, session=db)
+        updated_user = await userRep.update(model=updating_user, session=db)
         return updated_user
 
     @classmethod
@@ -72,7 +69,7 @@ class UserService:
 
     @classmethod
     async def get_all(cls, page_schema: PageScheme, db: AsyncSession) -> list[User]:
-        got_users = await cls.user_rep.get_all(page=Page(**page_schema.model_dump()), session=db)
+        got_users = await userRep.get_all(page=Page(**page_schema.model_dump()), session=db)
         return got_users
 
     @classmethod
@@ -82,7 +79,7 @@ class UserService:
 
     @classmethod
     async def get_by_id(cls, user_id: int, db: AsyncSession) -> User:
-        got_user = await cls.user_rep.get_by_id(model_id=user_id, session=db)
+        got_user = await userRep.get_by_id(model_id=user_id, session=db)
         return got_user
 
     @classmethod
@@ -92,15 +89,15 @@ class UserService:
 
     @classmethod
     async def get_by_username(cls, username: str, db: AsyncSession) -> User:
-        got_user = await cls.user_rep.get_by_unique_field(field=User.username, value=username, session=db)
+        got_user = await userRep.get_by_unique_field(field=User.username, value=username, session=db)
         return got_user
 
     @classmethod
     async def delete_by_id(cls, user_id: int, db: AsyncSession) -> User:
-        deleting_user = await cls.user_rep.get_by_id(model_id=user_id, session=db)
+        deleting_user = await userRep.get_by_id(model_id=user_id, session=db)
         roles = deleting_user.roles.copy()
         deleting_user.roles.clear()
-        deleted_user = await cls.user_rep.delete(model=deleting_user, session=db)
+        deleted_user = await userRep.delete(model=deleting_user, session=db)
         deleted_user.roles = roles
         return deleted_user
 

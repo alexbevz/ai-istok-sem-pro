@@ -36,7 +36,7 @@ class UserRouter(APIRouter):
 
     @classmethod
     async def create(cls, create_user_schema: CreatingUserScheme, db: AsyncSession = Depends(get_session_db)):
-        created_user = await userServ.create(create_user_schema, db)
+        created_user = await userServ.create_and_get_model_scheme(create_user_schema, db)
         return created_user
 
     @classmethod
@@ -46,7 +46,7 @@ class UserRouter(APIRouter):
 
     @classmethod
     async def get_all(cls, page_scheme: PageScheme = Depends(), db: AsyncSession = Depends(get_session_db)):
-        got_users = await userServ.get_all(page_scheme, db)
+        got_users = await userServ.get_model_scheme_all(page_scheme, db)
         return got_users
 
     @classmethod
@@ -57,12 +57,12 @@ class UserRouter(APIRouter):
     @classmethod
     async def update_by_id(cls, user_id: int, updated_user_schema: UpdatingUserScheme,
                            db: AsyncSession = Depends(get_session_db)):
-        updated_user = await userServ.update_by_id(user_id, updated_user_schema, db)
+        updated_user = await userServ.update_by_id_and_get_model_scheme(user_id, updated_user_schema, db)
         return updated_user
 
     @classmethod
     async def delete_by_id(cls, user_id: int, db: AsyncSession = Depends(get_session_db)):
-        deleted_user = await userServ.delete_by_id(user_id, db)
+        deleted_user = await userServ.delete_by_id_and_get_model_scheme(user_id, db)
         return deleted_user
 
 
