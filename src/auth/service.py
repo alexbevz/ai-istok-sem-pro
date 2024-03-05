@@ -47,7 +47,7 @@ class UserService:
     @classmethod
     async def create_and_get_model_scheme(cls, creating_user_schema: CreatingUserScheme,
                                           db: AsyncSession) -> ModelUserScheme:
-        created_user = cls.create(creating_user_schema, db)
+        created_user = await cls.create(creating_user_schema, db)
         model_user_scheme = ModelUserScheme.model_validate(created_user, from_attributes=True)
         return model_user_scheme
 
@@ -125,6 +125,7 @@ class AuthService:
             'email': register_auth_scheme.email,
             'roles': [2],
         })
+
         registered_user = await userServ.create_and_get_model_scheme(creating_user_scheme, db)
         return registered_user
 

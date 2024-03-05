@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependency import get_current_user, RoleChecker, oauth2_scheme
 from src.auth.model import User
-from src.auth.scheme import CreatingUserScheme, UpdatingUserScheme, LoginAuthScheme, RegisterAuthScheme
+from src.auth.scheme import UpdatingUserScheme, LoginAuthScheme, RegisterAuthScheme
 from src.auth.service import roleServ, userServ, authServ
 from src.database import get_session_db
 from src.scheme import PageScheme
@@ -25,7 +25,6 @@ class RoleRouter(APIRouter):
 class UserRouter(APIRouter):
     def __init__(self):
         super().__init__(prefix='/users', tags=['Пользователи'], dependencies=[Depends(RoleChecker({'admin'}))])
-        self.add_api_route(endpoint=self.create, path='/', methods=['POST'])
         self.add_api_route(endpoint=self.get_me, path='/me}', methods=['GET'],
                            dependencies=[Depends(RoleChecker({'user'}))])
         self.add_api_route(endpoint=self.get_all, path='/all', methods=['GET'])
@@ -34,10 +33,6 @@ class UserRouter(APIRouter):
                            dependencies=[Depends(RoleChecker({'user'}))])
         self.add_api_route(endpoint=self.delete_by_id, path='/{user_id}', methods=['DELETE'])
 
-    @classmethod
-    async def create(cls, create_user_schema: CreatingUserScheme, db: AsyncSession = Depends(get_session_db)):
-        created_user = await userServ.create_and_get_model_scheme(create_user_schema, db)
-        return created_user
 
     @classmethod
     async def get_me(cls, user: Annotated[User, Depends(get_current_user)], db: AsyncSession = Depends(get_session_db)):

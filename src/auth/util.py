@@ -38,7 +38,7 @@ class JwtUtil:
 
     @classmethod
     def decode_token(cls, token: str) -> dict:
-        payload = jwt.decode(token, cls.secret_key, algorithms=[cls.algorithm])
+        payload = jwt.decode(jwt=token, key=cls.secret_key, algorithms=[cls.algorithm], verify=True)
         return payload
 
     @classmethod
