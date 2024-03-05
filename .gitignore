@@ -1,5 +1,5 @@
 *.lock
-
+.vscode/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,windows,pycharm+all,visualstudiocode,git,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,windows,pycharm+all,visualstudiocode,git,linux
@@ -8,7 +8,6 @@
 # Created by git for backups. To disable backups in Git:
 # $ git config --global mergetool.keepBackup false
 *.orig
-
 # Created by git when using merge tools for conflicts
 *.BACKUP.*
 *.BASE.*
