@@ -168,51 +168,35 @@ class AuthService:
     async def get_user_by_token(cls, token: str, db: AsyncSession) -> User:
         if token not in cls.access_tokens:
             raise HTTPException(status_code=403, detail='Token is invalid')
-
         try:
             user_data = JwtUtil.decode_token(token)
         except Exception as e:
-            raise HTTPException(status_code=403, detail='Token is invalid')
+            raise HTTPException(status_code=403, detail=f"Error: {e}")
 
         user_id = user_data.get('id')
         got_user = await userServ.get_by_id(user_id, db)
         return got_user
     
     @classmethod
-    async def update_access_token(cls, refresh_token: str) -> str:
-        if refresh_token not in cls.refresh_tokens:
-            raise HTTPException(status_code=403, detail='Token is invalid')
-
+    async def update_access_token(cls, tokens: TokensScheme) -> TokensScheme:
+        if tokens.access_token not in cls.access_tokens:
+            raise HTTPException(status_code=403, detail='Access token is invalid')
+        if tokens.refresh_token not in cls.refresh_tokens:
+            raise HTTPException(status_code=403, detail='Refresh token is invalid')
+        
+        cls.refresh_tokens.remove(tokens.refresh_token)
+        cls.access_tokens.remove(tokens.access_token)
+        del cls.access_refresh_tokens[tokens.access_token]
         try:
-            user_data = JwtUtil.decode_token(refresh_token)
+            user_data = JwtUtil.decode_token(tokens.refresh_token)
         except Exception as e:
-            raise HTTPException(status_code=403, detail='Token is invalid')
-
-        user_id = user_data.get('id')
-        got_user = await userServ.get_by_id(user_id)
-        model_user_scheme = ModelUserScheme.model_validate(got_user, from_attributes=True)
-        payload = model_user_scheme.model_dump()
-        access_token, _ = JwtUtil.create_tokens(payload)
+            raise HTTPException(status_code=403, detail=f"Error: {e}")
+        
+        access_token, refresh_token = JwtUtil.create_tokens(user_data)
         cls.access_tokens.add(access_token)
-        return access_token
-    
-    @classmethod
-    async def update_refresh_token(cls, refresh_token: str) -> str:
-        if refresh_token not in cls.refresh_tokens:
-            raise HTTPException(status_code=403, detail='Token is invalid')
-
-        try:
-            user_data = JwtUtil.decode_token(refresh_token)
-        except Exception as e:
-            raise HTTPException(status_code=403, detail='Token is invalid')
-
-        user_id = user_data.get('id')
-        got_user = await userServ.get_by_id(user_id)
-        model_user_scheme = ModelUserScheme.model_validate(got_user, from_attributes=True)
-        payload = model_user_scheme.model_dump()
-        _, new_refresh_token = JwtUtil.create_tokens(payload)
-        cls.refresh_tokens.add(new_refresh_token)
-        return new_refresh_token
+        cls.refresh_tokens.add(refresh_token)
+        cls.access_refresh_tokens.update({access_token: refresh_token})
+        return TokensScheme(access_token=access_token, refresh_token=refresh_token)
 
 
 authServ = AuthService()
