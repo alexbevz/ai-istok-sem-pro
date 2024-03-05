@@ -16,7 +16,7 @@ class UserRole(BaseModel):
 class Role(BaseModel):
     __tablename__ = 'role'
 
-    name = Column(String())
+    name = Column(String(32), nullable=False, unique=True)
 
     def __repr__(self) -> str:
         return f'Role(id={self.id!r}, name={self.name!r})'
@@ -25,9 +25,9 @@ class Role(BaseModel):
 class User(BaseModel):
     __tablename__ = 'user'
 
-    username = Column(String(32), unique=True)
-    password = Column(String())
-    email = Column(String(32), nullable=True, unique=True)
+    username = Column(String(32), nullable=False, unique=True)
+    password = Column(String(), nullable=False)
+    email = Column(String(32), nullable=True, unique=True, default='')
 
     roles = relationship(Role, secondary=UserRole.__tablename__, lazy='joined', )
 
