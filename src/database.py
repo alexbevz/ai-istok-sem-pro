@@ -62,7 +62,7 @@ db_session_manager = DatabaseSessionManager()
 db_session_manager.init(db_config.get_url())
 
 
-async def get_session_db() -> AsyncSession:
+async def get_session_db() -> AsyncIterator[AsyncSession]:
     async with db_session_manager.session() as session:
         yield session
 

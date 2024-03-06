@@ -169,11 +169,11 @@ class AuthService:
         if token not in cls.access_tokens:
             raise HTTPException(status_code=403, detail='Token is invalid')
         try:
-            user_data = JwtUtil.decode_token(token)
+            payload = JwtUtil.decode_token(token)
         except Exception as e:
             raise HTTPException(status_code=403, detail=f"Error: {e}")
 
-        user_id = user_data.get('id')
+        user_id = payload.get('id')
         got_user = await userServ.get_by_id(user_id, db)
         return got_user
     
