@@ -118,6 +118,9 @@ class AuthService:
 
     @classmethod
     async def register(cls, register_auth_scheme: RegisterAuthScheme, db: AsyncSession) -> ModelUserScheme:
+        registering_user = await userServ.get_by_username(register_auth_scheme.username, db)
+        if registering_user is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='User already exists')
         encrypted_password = BcryptUtil.hash_password(register_auth_scheme.password)
         creating_user_scheme = CreatingUserScheme.model_validate({
             'username': register_auth_scheme.username,
@@ -132,9 +135,10 @@ class AuthService:
     @classmethod
     async def login(cls, login_auth_scheme: LoginAuthScheme, db: AsyncSession) -> TokensScheme:
         logining_user = await userServ.get_by_username(login_auth_scheme.username, db)
+        if logining_user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User does not exist')
         if not BcryptUtil.verify_password(login_auth_scheme.password, logining_user.password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Incorrect password or username')
-
         model_user_scheme = ModelUserScheme.model_validate(logining_user, from_attributes=True)
         payload = model_user_scheme.model_dump()
         access_token, refresh_token = JwtUtil.create_tokens(payload)
