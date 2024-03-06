@@ -103,14 +103,18 @@ async def test_login(mock_db_session, mock_user_rep):
         mock_user_rep.get_by_username.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_logout():
-    AuthService.access_tokens.add('test_access_token')
-    AuthService.refresh_tokens.add('test_refresh_token')
-    AuthService.access_refresh_tokens.update({'test_access_token': 'test_refresh_token'})
-    await AuthService.logout('test_access_token')
-    assert 'test_access_token' not in AuthService.access_tokens
-    assert 'test_refresh_token' not in AuthService.refresh_tokens
-    assert 'test_access_token' not in AuthService.access_refresh_tokens
+async def test_logout(mock_user_rep):
+    with patch('src.auth.service.userServ', mock_user_rep):
+        mock_user_rep.get_by_username.return_value = ModelUserScheme(username='test', password=BcryptUtil.hash_password('test'), 
+                                                                     email='test', id=0, roles=[ModelRoleScheme(id=0, name='user'), ])
+        login_auth_scheme = LoginAuthScheme(username='test', password='test')
+        tokens = await AuthService.login(login_auth_scheme, mock_db_session)
+        assert isinstance(tokens, TokensScheme)
+        mock_user_rep.get_by_username.assert_called_once()
+        await AuthService.logout(tokens.access_token)
+        assert tokens.access_token not in AuthService.access_tokens
+        assert tokens.refresh_token not in AuthService.refresh_tokens
+        assert tokens.access_token not in AuthService.access_refresh_tokens
 
 @pytest.mark.asyncio
 async def test_is_authenticated():
