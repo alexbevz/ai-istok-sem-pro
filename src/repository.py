@@ -1,4 +1,5 @@
 from typing import Any
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -6,14 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.exception import CrudException
 
-
 class Page:
-    offset: int = 0
-    limit: int = 20
+    offset: Optional[int] = 0
+    limit: Optional[int] = 20
 
     def __init__(self, offset: int = 0, limit: int = 20):
-        self.offset: int = offset
-        self.limit: int = limit
+        self.offset: Optional[int] = offset
+        self.limit: Optional[int] = limit
 
 
 class CrudRepository:
@@ -107,7 +107,7 @@ class CrudRepository:
             raise CrudException(e)
 
     @classmethod
-    async def delete(self, *, model: Any, session: AsyncSession) -> Any:
+    async def delete(cls, *, model: Any, session: AsyncSession) -> Any:
         try:
             await session.delete(model)
             await session.flush()

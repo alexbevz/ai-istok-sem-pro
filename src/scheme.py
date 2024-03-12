@@ -1,10 +1,10 @@
 from pydantic import BaseModel
-
+from typing import Optional
 
 class BaseScheme(BaseModel):
     pass
 
 
 class PageScheme(BaseModel):
-    offset: int = 0
-    limit: int = 20
+    offset: Optional[int] = 0
+    limit: Optional[int] = 20
