@@ -1,43 +1,54 @@
 from src.scheme import BaseScheme
 from typing import Optional
 
-class DataCollectionScheme(BaseScheme):
+class BaseDataCollectionScheme(BaseScheme):
     user_id: int
     name: str
     qdrant_table_name: str
 
-class CollectionItemScheme(BaseScheme):
+class ModelDataCollectionScheme(BaseDataCollectionScheme):
+    id: int
+
+class BaseCollectionItemScheme(BaseScheme):
     data_collection_id: int
     content: str
     user_content_id: Optional[str] = None
+
+class ModelCollectionItemScheme(BaseCollectionItemScheme):
+    id: int
 
 class TextItemScheme(BaseScheme):
     content: str
     user_content_id: Optional[str] = None
 
-class TextProximityItemScheme(BaseScheme):
-    content: str
+class TextProximityItemScheme(TextItemScheme):
     semantic_proximity: float
-    user_content_id: Optional[str] = None
 
-class FindProximityRequest(BaseScheme):
+class ProximityRequestScheme(BaseScheme):
     content: str
+    user_content_id: Optional[str] = None
     compared_items: list[TextItemScheme]
 
-class FindProximityResponse(BaseScheme):
-    content: str
-    compared_items_result: list[TextProximityItemScheme]
-
-class DataCollectionRequest(BaseScheme):
-    name: str
-
-class DataCollectionResponse(BaseScheme):
-    id: int
-    name: str
-
-class CreateItemResponse(BaseScheme):
-    id: int
-    data_collection_id: int
+class ProximityResponseScheme(BaseScheme):
     content: str
     user_content_id: Optional[str] = None
+    compared_items_result: list[TextProximityItemScheme]
 
+class CreateDataCollectionScheme(BaseScheme):
+    name: str
+
+class EditDataCollectionScheme(CreateDataCollectionScheme):
+    pass
+
+class GetDataCollectionScheme(BaseScheme):
+    id: int
+    name: str
+
+class CreateItemResponseScheme(ModelCollectionItemScheme):
+    pass
+
+class GetAllCollectionElementsScheme(BaseScheme):
+    result: list[ModelCollectionItemScheme]
+    offset: int
+    limit: int
+    total: int
