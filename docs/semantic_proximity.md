@@ -314,12 +314,12 @@ __Response__<br>
 Body:
 ```json
 {
-  "content": "",
-  "user_content_id": "",
+  "content": "str",
+  "user_content_id": "str",
   "compared_items_result": [
     {
-      "content": "",
-      "user_content_id": "",
+      "content": "str",
+      "user_content_id": "str",
       "semantic_proximity": 0.0
     }
   ]
@@ -339,12 +339,12 @@ __Response__<br>
 Body:
 ```json
 {
-  "content": "",
-  "user_content_id": "",
+  "content": "str",
+  "user_content_id": "str",
   "compared_items_result": [
     {
-      "content": "",
-      "user_content_id": "",
+      "content": "str",
+      "user_content_id": "str",
       "semantic_proximity": 0.0
     }
   ]
