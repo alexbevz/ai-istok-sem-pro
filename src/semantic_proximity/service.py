@@ -61,7 +61,7 @@ class CollectionService:
                                 user: User,
                                 db: AsyncSession) -> GetDataCollectionScheme:
         
-        collection_owner = ModelUserScheme.model_validate(user)
+        collection_owner = ModelUserScheme.model_validate(user, from_attributes=True)
         qdrant_table_name = f"user_{collection_owner.id}_{create_collection_scheme.name}"
         collection = await collectionRep.get_by_unique_field(field=DataCollection.qdrant_table_name,
                                                                   value=qdrant_table_name,
@@ -76,7 +76,7 @@ class CollectionService:
         vectorRep.create_collection(data_collection_scheme.qdrant_table_name)
         data_collection = await collectionRep.create(model=data_collection_model,
                                                           session=db)
-        return GetDataCollectionScheme.model_validate(data_collection)
+        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
 
     @classmethod
@@ -84,11 +84,11 @@ class CollectionService:
                                    user: User,
                                    db: AsyncSession) -> list[GetDataCollectionScheme]:
         
-        user_id = ModelUserScheme.model_validate(user).id
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collections = await collectionRep.get_all_by_field(field=DataCollection.user_id,
                                                                      value=user_id,
                                                                      session=db)
-        return [GetDataCollectionScheme.model_validate(item) for item in data_collections]
+        return [GetDataCollectionScheme.model_validate(item, from_attributes=True) for item in data_collections]
     
     @classmethod
     async def get_collection_by_id(cls,
@@ -99,10 +99,12 @@ class CollectionService:
         user_id = ModelUserScheme.model_validate(user).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
-        if data_collection.user_id != user_id:
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
             raise Exception(f"User {user_id} is not owner of {collection_id}")
         
-        return GetDataCollectionScheme.model_validate(data_collection)
+        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
     @classmethod
     async def edit_collection_by_id(cls,
@@ -119,14 +121,16 @@ class CollectionService:
                                       user: User,
                                       db: AsyncSession) -> GetDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user).id
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
-        if data_collection.user_id != user_id:
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
             raise Exception(f"User {user_id} is not owner of {collection_id}")
         vectorRep.delete_collection(data_collection.qdrant_table_name)
         await collectionRep.delete_by_id(model_id=collection_id, session=db)
-        return GetDataCollectionScheme.model_validate(data_collection)
+        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
     
     @classmethod
     async def add_collection_item(cls,
@@ -135,10 +139,12 @@ class CollectionService:
                                   user: User,
                                   db: AsyncSession) -> None:
         
-        user_id = ModelUserScheme.model_validate(user).id
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                             session=db)
-        if data_collection.user_id != user_id:
+                                                              session=db)
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
             raise Exception(f"User {user_id} is not owner of {collection_id}")
         model_collection_item_scheme = BaseCollectionItemScheme(
             data_collection_id=collection_id,
@@ -168,10 +174,12 @@ class CollectionService:
                                   user: User,
                                   db: AsyncSession) -> None:
         # TODO: дописать метод позже
-        user_id = ModelUserScheme.model_validate(user).id
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                             session=db)
-        if data_collection.user_id != user_id:
+                                                              session=db)
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
             raise Exception(f"User {user_id} is not owner of {collection_id}")
         return 
 
