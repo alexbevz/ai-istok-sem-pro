@@ -1,5 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from qdrant_client.models import PointStruct
+from fastapi import HTTPException
+from starlette import status
 
 from src.auth.scheme import ModelUserScheme
 from src.auth.model import User
@@ -35,7 +37,7 @@ distance = SimilarityUtil.choose_distance_metric(distance_metric)
 class ProximityService:
 
     @classmethod
-    def find_proximity(cls, request: ProximityRequestScheme) -> ProximityResponseScheme:
+    async def find_proximity(cls, request: ProximityRequestScheme) -> ProximityResponseScheme:
         embedding = embed(request.content)
         compared_items = [item.content for item in request.compared_items]
         target_embeddings = embed(compared_items)
@@ -67,7 +69,7 @@ class CollectionService:
                                                                   value=qdrant_table_name,
                                                                   session=db)
         if collection:
-            raise Exception(f"Collection with name {create_collection_scheme.name} already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Collection with name {create_collection_scheme.name} already exists")
         data_collection_scheme = BaseDataCollectionScheme(
             user_id=collection_owner.id,
             name=create_collection_scheme.name,
@@ -96,13 +98,15 @@ class CollectionService:
                                    user: User,
                                    db: AsyncSession) -> GetDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user).id
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise Exception(f"User {user_id} is not owner of {collection_id}")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
         
         return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
@@ -124,10 +128,12 @@ class CollectionService:
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise Exception(f"User {user_id} is not owner of {collection_id}")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
         vectorRep.delete_collection(data_collection.qdrant_table_name)
         await collectionRep.delete_by_id(model_id=collection_id, session=db)
         return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
@@ -137,33 +143,42 @@ class CollectionService:
                                   collection_id: int,
                                   add_collection_item_scheme: TextItemScheme,
                                   user: User,
-                                  db: AsyncSession) -> None:
+                                  db: AsyncSession) -> ModelCollectionItemScheme:
         
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise Exception(f"User {user_id} is not owner of {collection_id}")
-        model_collection_item_scheme = BaseCollectionItemScheme(
-            data_collection_id=collection_id,
-            content=TextItemScheme.content,
-        )
 
-        collection_item = await itemRep.create(model=model_collection_item_scheme,
+        if data_collection_scheme.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        collection_item_scheme = BaseCollectionItemScheme(
+            data_collection_id=collection_id,
+            content=add_collection_item_scheme.content,
+            user_content_id=add_collection_item_scheme.user_content_id
+        )
+        collection_item_model = CollectionItem(**collection_item_scheme.model_dump())
+        collection_item = await itemRep.create(model=collection_item_model,
                                                     session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
+                                                                                from_attributes=True)
         payload = {
-            "content": collection_item.content
+            "content": collection_item_scheme.content
         }
         vector = embed(add_collection_item_scheme.content)
         point = PointStruct(
-            id=collection_item.id,
+            id=collection_item_scheme.id,
             payload=payload,
             vector=vector
         )
-        vectorRep.add_point(collection_name=data_collection.name,
+        vectorRep.add_point(collection_name=data_collection.qdrant_table_name,
                             point=point)
+        
+        return collection_item_scheme
         
         
 
@@ -180,7 +195,7 @@ class CollectionService:
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise Exception(f"User {user_id} is not owner of {collection_id}")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
         return 
 
 
