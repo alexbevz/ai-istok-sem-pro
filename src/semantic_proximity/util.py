@@ -26,3 +26,9 @@ class SimilarityUtil:
         elif distance_metric == "manhattan":
             return manhattan_distance
         return cosine_similarity
+
+class CollectionUtil:
+
+    @classmethod
+    def convert_name_to_qdrant(cls, user_id: int, name: str):
+        return f"user_{user_id}_{name}"

@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from qdrant_client.models import PointStruct, PointIdsList, Record
+from qdrant_client.models import PointStruct, PointIdsList, Record, InitFrom
 
 from src.semantic_proximity.vector_database import QdrantClientManager
 from src.semantic_proximity.config import QdrantConfig
@@ -24,6 +24,14 @@ class VectorRepository:
                                        vectors_config=qdrant_config.get_vector_config())
         return collection_name
     
+    @classmethod
+    def create_from_collection(cls, collection_name: str, base_collection: str):
+        with QdrantClientManager() as client:
+            client.create_collection(collection_name=collection_name,
+                                     vectors_config=qdrant_config.get_vector_config(),
+                                     init_from=InitFrom(collection=base_collection))
+        return collection_name
+
     @classmethod
     def delete_collection(cls, collection_name: str) -> str:
         with QdrantClientManager() as client:

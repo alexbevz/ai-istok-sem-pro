@@ -31,9 +31,12 @@ class SemanticProximityRouter(APIRouter):
         self.add_api_route(endpoint=self.create_collection, path="/collections", methods=['POST'])
         self.add_api_route(endpoint=self.get_all_collections, path="/collections", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection, path="/collections/{collection_id}", methods=['GET'])
+        self.add_api_route(endpoint=self.edit_collection, path="/collections/{collection_id}", methods=['PUT'])
         self.add_api_route(endpoint=self.delete_collection, path="/collections/{collection_id}", methods=['DELETE'])
 
         self.add_api_route(endpoint=self.add_collection_item, path="/collections/{collection_id}/items", methods=['POST'])
+        self.add_api_route(endpoint=self.get_all_collection_items, path="/collections/{collection_id}/items", methods=['GET'])
+        
 
 
     @classmethod
@@ -68,6 +71,16 @@ class SemanticProximityRouter(APIRouter):
         return collection
 
     @classmethod
+    async def edit_collection(cls,
+                              collection_id: int,
+                              edit_collection_scheme: EditDataCollectionScheme,
+                              user: User = Depends(get_current_user),
+                              db: AsyncSession = Depends(get_session_db)):
+        
+        collection = await collectionServ.edit_collection_by_id(collection_id, edit_collection_scheme, user, db)
+        return collection
+
+    @classmethod
     async def delete_collection(cls,
                                 collection_id: int,
                                 user: User = Depends(get_current_user),
@@ -87,6 +100,15 @@ class SemanticProximityRouter(APIRouter):
         collection_item = await collectionServ.add_collection_item(collection_id, add_collection_item_scheme, user, db)
         return collection_item
     
+    @classmethod
+    async def get_all_collection_items(cls,
+                                       collection_id: int,
+                                       offset = 0,
+                                       limit = 10,
+                                       user: User = Depends(get_current_user),
+                                       db: AsyncSession = Depends(get_session_db)):
+        collection_items = await collectionServ.get_all_collection_items(collection_id, offset, limit, user, db)
+        return collection_items
     
 
 spsRouter = SemanticProximityRouter()
