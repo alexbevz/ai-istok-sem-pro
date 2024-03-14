@@ -42,7 +42,8 @@ class SemanticProximityRouter(APIRouter):
         self.add_api_route(endpoint=self.edit_collection_item_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}", methods=['PUT'])
         self.add_api_route(endpoint=self.delete_collection_item, path="/collections/{collection_id}/items/{item_id}", methods=['DELETE'])
         self.add_api_route(endpoint=self.find_proxime_items, path="/collections/{collection_id}/find", methods=['GET'])
-
+        self.add_api_route(endpoint=self.find_proxime_items_by_id, path="/collections/{collection_id}/items/{item_id}/find", methods=['GET'])
+        self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['GET'])
 
 
 
@@ -170,11 +171,32 @@ class SemanticProximityRouter(APIRouter):
                                  find_proxime_items_scheme: TextItemScheme,
                                  save: bool=False,
                                  count: int=-1,
-                                 limit_accuracy: float=1.0,
+                                 limit_accuracy: float=0.1,
                                  user: User = Depends(get_current_user),
                                  db: AsyncSession = Depends(get_session_db)):
-        
         collection_items = await collectionServ.find_proxime_items(collection_id, find_proxime_items_scheme, save, count, limit_accuracy, user, db)
+        return collection_items
+
+    @classmethod
+    async def find_proxime_items_by_id(cls,
+                                       collection_id: int,
+                                       item_id: int,
+                                       count: int=-1,
+                                       limit_accuracy: float=0.1,
+                                       user: User = Depends(get_current_user),
+                                       db: AsyncSession = Depends(get_session_db)):
+        collection_items = await collectionServ.find_proxime_items_by_id(collection_id, item_id, count, limit_accuracy, user, db)
+        return collection_items
+
+    @classmethod
+    async def find_proxime_items_by_user_content_id(cls,
+                                                    collection_id: int,
+                                                    user_content_id: int,
+                                                    count: int=-1,
+                                                    limit_accuracy: float=0.1,
+                                                    user: User = Depends(get_current_user),
+                                                    db: AsyncSession = Depends(get_session_db)):
+        collection_items = await collectionServ.find_proxime_items_by_user_content_id(collection_id, user_content_id, count, limit_accuracy, user, db)
         return collection_items
 
 spsRouter = SemanticProximityRouter()

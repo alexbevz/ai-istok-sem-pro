@@ -255,6 +255,8 @@ class CollectionService:
                                                 session=db)
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
                                                                             from_attributes=True)
+        if collection_item_scheme.data_collection_id != collection_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {item_id} doesn't belong to collection {collection_id}")
         return collection_item_scheme
 
     @classmethod
@@ -273,11 +275,14 @@ class CollectionService:
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
-        collection_item = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
+        collection_items = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
                                                             value=user_content_id,
                                                             session=db)
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item[0],
+        collection_item = collection_items[0]
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
                                                                             from_attributes=True)
+        if collection_item_scheme.data_collection_id != collection_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {user_content_id} doesn't belong to collection {collection_id}")
         return collection_item_scheme
 
     @classmethod
@@ -300,6 +305,9 @@ class CollectionService:
         
         collection_item = await itemRep.get_by_id(model_id=item_id,
                                                         session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        if collection_item_scheme.data_collection_id != collection_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {item_id} doesn't belong to collection {collection_id}")
         collection_item.content = edit_collection_item_scheme.content
         collection_item.user_content_id = edit_collection_item_scheme.user_content_id
         collection_item = await itemRep.update(model=collection_item,
@@ -340,6 +348,9 @@ class CollectionService:
                                                          value=user_content_id,
                                                         session=db)
         collection_item = collection_items[0]
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        if collection_item_scheme.data_collection_id != collection_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {user_content_id} doesn't belong to collection {collection_id}")
         collection_item.content = edit_collection_item_scheme.content
         collection_item.user_content_id = edit_collection_item_scheme.user_content_id
         collection_item = await itemRep.update(model=collection_item,
@@ -374,6 +385,11 @@ class CollectionService:
                                                                           from_attributes=True)
         if data_collection_scheme.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        collection_item = await itemRep.get_by_id(model_id=item_id,
+                                                        session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        if collection_item_scheme.data_collection_id != collection_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {item_id} doesn't belong to collection {collection_id}")
         collection_item = await itemRep.delete_by_id(model_id=item_id,
                                                     session=db)
         collection_name = data_collection_scheme.qdrant_table_name
@@ -439,6 +455,64 @@ class CollectionService:
             compared_items_result=filtered_result
         )
 
+    @classmethod
+    async def find_proxime_items_by_id(cls,
+                                       collection_id: int,
+                                       item_id: int,
+                                       count: int,
+                                       limit_accuracy: float,
+                                       user: User,
+                                       db: AsyncSession):
+        
+        collection_item = await cls.get_collection_item_by_id(
+            collection_id=collection_id,
+            item_id=item_id,
+            user=user,
+            db=db
+        )
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        return cls.find_proxime_items(
+            collection_id=collection_id,
+            find_proxime_items_scheme=TextItemScheme(
+                content=collection_item_scheme.content,
+                user_content_id=collection_item_scheme.user_content_id
+            ),
+            save=False,
+            count=count,
+            limit_accuracy=limit_accuracy,
+            user=user,
+            db=db
+        )
+    
+    @classmethod
+    async def find_proxime_items_by_user_content_id(cls,
+                                                    collection_id: int,
+                                                    user_content_id: int,
+                                                    count: int,
+                                                    limit_accuracy: float,
+                                                    user: User,
+                                                    db: AsyncSession):
+        
+        collection_item = await cls.get_collection_item_by_user_content_id(
+            collection_id=collection_id,
+            user_content_id=user_content_id,
+            user=user,
+            db=db
+        )
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
 
+        return cls.find_proxime_items(
+            collection_id=collection_id,
+            find_proxime_items_scheme=TextItemScheme(
+                content=collection_item_scheme.content,
+                user_content_id=collection_item_scheme.user_content_id
+            ),
+            save=False,
+            count=count,
+            limit_accuracy=limit_accuracy,
+            user=user,
+            db=db
+        )
+        
 collectionServ = CollectionService()
 
