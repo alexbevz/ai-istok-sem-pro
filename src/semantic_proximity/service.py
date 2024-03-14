@@ -157,7 +157,10 @@ class CollectionService:
         if data_collection_scheme.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
         vectorRep.delete_collection(data_collection.qdrant_table_name)
-        await collectionRep.delete_by_id(model_id=collection_id, session=db)
+        data_collection = await collectionRep.delete_by_id(model_id=collection_id, session=db)
+        await itemRep.delete_all_by_field(field=CollectionItem.data_collection_id,
+                                          value=data_collection_scheme.id,
+                                          session=db)
         return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
     
     @classmethod
@@ -234,11 +237,11 @@ class CollectionService:
         return collection_elements
 
     @classmethod
-    async def get_collection_item(cls,
+    async def get_collection_item_by_id(cls,
                                   collection_id: int,
                                   item_id: int,
                                   user: User,
-                                  db: AsyncSession) -> None:
+                                  db: AsyncSession):
         # TODO: дописать метод позже
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -249,9 +252,34 @@ class CollectionService:
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
-        
-        return 
+        collection_item = itemRep.get_by_id(model_id=item_id,
+                                                session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
+                                                                            from_attributes=True)
+        return collection_item_scheme
 
+    @classmethod
+    async def get_collection_item_by_user_content_id(cls,
+                                  collection_id: int,
+                                  user_content_id: int,
+                                  user: User,
+                                  db: AsyncSession):
+        
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
+        data_collection = await collectionRep.get_by_id(model_id=collection_id,
+                                                              session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        collection_item = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
+                                                            value=user_content_id,
+                                                            session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item[0],
+                                                                            from_attributes=True)
+        return collection_item_scheme
 
 
 collectionServ = CollectionService()

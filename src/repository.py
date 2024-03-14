@@ -130,6 +130,20 @@ class CrudRepository:
         except IntegrityError as e:
             raise CrudException(e)
 
+    @classmethod
+    async def delete_all_by_field(cls, field: Any, value: Any, session: AsyncSession) -> list[Any]:
+        try:
+            models = []
+            result = await session.execute(select(cls._cls_model).where(field == value))
+            model = result.scalars().all()
+            for item in model:
+                await session.delete(item)
+            models.append(model)
+            await session.flush()
+            return models
+        except IntegrityError as e:
+            raise CrudException(e)
+
     #
     # async def search(self, **filters: Any) -> list[Any]:
     #     """search by fields values"""

@@ -36,7 +36,7 @@ class SemanticProximityRouter(APIRouter):
 
         self.add_api_route(endpoint=self.add_collection_item, path="/collections/{collection_id}/items", methods=['POST'])
         self.add_api_route(endpoint=self.get_all_collection_items, path="/collections/{collection_id}/items", methods=['GET'])
-        
+
 
 
     @classmethod
@@ -109,6 +109,11 @@ class SemanticProximityRouter(APIRouter):
                                        db: AsyncSession = Depends(get_session_db)):
         collection_items = await collectionServ.get_all_collection_items(collection_id, offset, limit, user, db)
         return collection_items
+    
+    @classmethod
+    async def get_collection_item_by_id(cls,
+                                        collection_id: int,
+                                        )
     
 
 spsRouter = SemanticProximityRouter()
