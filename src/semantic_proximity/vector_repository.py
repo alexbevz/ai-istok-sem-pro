@@ -2,7 +2,7 @@ from typing import Any, List
 
 from qdrant_client.models import PointStruct, PointIdsList, Record
 
-from vector_database import QdrantClientManager
+from src.semantic_proximity.vector_database import QdrantClientManager
 from src.semantic_proximity.config import QdrantConfig
 
 qdrant_config = QdrantConfig()
