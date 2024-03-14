@@ -470,12 +470,11 @@ class CollectionService:
             user=user,
             db=db
         )
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-        return cls.find_proxime_items(
+        return await cls.find_proxime_items(
             collection_id=collection_id,
             find_proxime_items_scheme=TextItemScheme(
-                content=collection_item_scheme.content,
-                user_content_id=collection_item_scheme.user_content_id
+                content=collection_item.content,
+                user_content_id=collection_item.user_content_id
             ),
             save=False,
             count=count,
@@ -501,7 +500,7 @@ class CollectionService:
         )
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
 
-        return cls.find_proxime_items(
+        return await cls.find_proxime_items(
             collection_id=collection_id,
             find_proxime_items_scheme=TextItemScheme(
                 content=collection_item_scheme.content,
