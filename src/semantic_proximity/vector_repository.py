@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from qdrant_client.models import PointStruct, PointIdsList, Record, InitFrom
 
@@ -88,5 +88,16 @@ class VectorRepository:
                                  points=point_ids
                                  )
                          )
+    
+    @classmethod
+    def find_nearest_by_vector(cls, collection_name: str, vector, limit: Optional[int]=None):
+        with QdrantClientManager() as client:
+            if limit is None:
+                limit = cls.get_collection_len(collection_name)
+            return client.search(collection_name=collection_name,
+                               query_vector=vector,
+                               limit=limit,
+                               with_payload=True,
+                               with_vectors=True)
 
 vectorRep = VectorRepository()

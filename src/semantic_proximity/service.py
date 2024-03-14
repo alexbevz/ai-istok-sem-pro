@@ -5,7 +5,6 @@ from starlette import status
 
 from src.auth.scheme import ModelUserScheme
 from src.auth.model import User
-from src.auth.service import userServ
 from src.semantic_proximity.util import (EmbeddingUtil,
                                          SimilarityUtil,
                                          CollectionUtil)
@@ -252,7 +251,7 @@ class CollectionService:
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
-        collection_item = itemRep.get_by_id(model_id=item_id,
+        collection_item = await itemRep.get_by_id(model_id=item_id,
                                                 session=db)
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
                                                                             from_attributes=True)
@@ -280,6 +279,165 @@ class CollectionService:
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item[0],
                                                                             from_attributes=True)
         return collection_item_scheme
+
+    @classmethod
+    async def edit_collection_item_by_id(cls,
+                                         collection_id: int,
+                                         item_id: int,
+                                         edit_collection_item_scheme: TextItemScheme,
+                                         user: User,
+                                         db: AsyncSession):
+        
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
+        data_collection = await collectionRep.get_by_id(model_id=collection_id,
+                                                            session=db) 
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        
+        collection_item = await itemRep.get_by_id(model_id=item_id,
+                                                        session=db)
+        collection_item.content = edit_collection_item_scheme.content
+        collection_item.user_content_id = edit_collection_item_scheme.user_content_id
+        collection_item = await itemRep.update(model=collection_item,
+                                                    session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        collection_name = data_collection_scheme.qdrant_table_name
+        vector = embed(edit_collection_item_scheme.content)
+        payload = {
+            "content": edit_collection_item_scheme.content
+        }
+        point = PointStruct(
+            id=collection_item_scheme.id,
+            payload=payload,
+            vector=vector
+        )
+        vectorRep.add_point(collection_name=collection_name, point=point)
+        return collection_item_scheme
+
+    @classmethod
+    async def edit_collection_item_by_user_content_id(cls,
+                                         collection_id: int,
+                                         user_content_id: int,
+                                         edit_collection_item_scheme: TextItemScheme,
+                                         user: User,
+                                         db: AsyncSession):
+        
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
+        data_collection = await collectionRep.get_by_id(model_id=collection_id,
+                                                            session=db) 
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                                    from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        
+        collection_items = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
+                                                         value=user_content_id,
+                                                        session=db)
+        collection_item = collection_items[0]
+        collection_item.content = edit_collection_item_scheme.content
+        collection_item.user_content_id = edit_collection_item_scheme.user_content_id
+        collection_item = await itemRep.update(model=collection_item,
+                                                    session=db)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        collection_name = data_collection_scheme.qdrant_table_name
+        vector = embed(edit_collection_item_scheme.content)
+        payload = {
+            "content": edit_collection_item_scheme.content
+        }
+        point = PointStruct(
+            id=collection_item_scheme.id,
+            payload=payload,
+            vector=vector
+        )
+        vectorRep.add_point(collection_name=collection_name, point=point)
+        return collection_item_scheme
+
+    @classmethod
+    async def delete_collection_item(cls,
+                                           collection_id: int,
+                                           item_id: int,
+                                           user: User,
+                                           db: AsyncSession):
+        
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
+        data_collection = await collectionRep.get_by_id(model_id=collection_id,
+                                                            session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                          from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        collection_item = await itemRep.delete_by_id(model_id=item_id,
+                                                    session=db)
+        collection_name = data_collection_scheme.qdrant_table_name
+        vectorRep.delete_point_by_id(collection_name=collection_name, point_id=item_id)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+        return collection_item_scheme
+
+    @classmethod
+    async def find_proxime_items(cls,
+                                 collection_id: int,
+                                 find_proxime_items_scheme: TextItemScheme,
+                                 save: bool,
+                                 count: int,
+                                 limit_accuracy: float,
+                                 user: User,
+                                 db: AsyncSession):
+
+        count, limit_accuracy = int(count), float(limit_accuracy)
+        if type(save) == str:
+            save = save == 'true'
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
+        data_collection = await collectionRep.get_by_id(model_id=collection_id,
+                                                        session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                          from_attributes=True)
+        if data_collection_scheme.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        vector = embed(find_proxime_items_scheme.content)
+        payload = {
+            "content": find_proxime_items_scheme.content
+        }
+        nearest = vectorRep.find_nearest_by_vector(collection_name=data_collection_scheme.qdrant_table_name,
+                                                   vector=vector)
+        filtered_result = [
+            TextProximityItemScheme(
+                content=item.payload["content"],
+                semantic_proximity=item.score
+            ) for item in nearest if item.score >= limit_accuracy
+        ][:count]
+        if save:
+            collection_item_scheme = BaseCollectionItemScheme(
+                content=find_proxime_items_scheme.content,
+                user_content_id=find_proxime_items_scheme.user_content_id,
+                data_collection_id=collection_id,
+            )
+            collection_item_model = CollectionItem(**collection_item_scheme.model_dump())
+            collection_item = await itemRep.create(model=collection_item_model,
+                                                        session=db)
+            collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+            collection_name = data_collection_scheme.qdrant_table_name
+            point = PointStruct(
+                id=collection_item_scheme.id,
+                payload=payload,
+                vector=vector
+            )
+            vectorRep.add_point(collection_name=collection_name, point=point)
+        
+        return ProximityResponseScheme(
+            content=find_proxime_items_scheme.content,
+            user_content_id=find_proxime_items_scheme.user_content_id,
+            compared_items_result=filtered_result
+        )
 
 
 collectionServ = CollectionService()

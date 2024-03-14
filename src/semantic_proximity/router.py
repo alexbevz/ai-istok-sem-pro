@@ -36,6 +36,13 @@ class SemanticProximityRouter(APIRouter):
 
         self.add_api_route(endpoint=self.add_collection_item, path="/collections/{collection_id}/items", methods=['POST'])
         self.add_api_route(endpoint=self.get_all_collection_items, path="/collections/{collection_id}/items", methods=['GET'])
+        self.add_api_route(endpoint=self.get_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['GET'])
+        self.add_api_route(endpoint=self.get_collection_item_by_user_content_id, path='/collections/{collection_id}/items/content/{user_content_id}', methods=['GET'])
+        self.add_api_route(endpoint=self.edit_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['PUT'])
+        self.add_api_route(endpoint=self.edit_collection_item_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}", methods=['PUT'])
+        self.add_api_route(endpoint=self.delete_collection_item, path="/collections/{collection_id}/items/{item_id}", methods=['DELETE'])
+        self.add_api_route(endpoint=self.find_proxime_items, path="/collections/{collection_id}/find", methods=['GET'])
+
 
 
 
@@ -113,8 +120,62 @@ class SemanticProximityRouter(APIRouter):
     @classmethod
     async def get_collection_item_by_id(cls,
                                         collection_id: int,
-                                        )
+                                        item_id: int,
+                                        user: User = Depends(get_current_user),
+                                        db: AsyncSession = Depends(get_session_db)):
+        collection_item = await collectionServ.get_collection_item_by_id(collection_id, item_id, user, db)
+        return collection_item
     
+    @classmethod
+    async def get_collection_item_by_user_content_id(cls,
+                                                     collection_id: int,
+                                                     user_content_id: int,
+                                                     user: User = Depends(get_current_user),
+                                                     db: AsyncSession = Depends(get_session_db)):
+        collection_item = await collectionServ.get_collection_item_by_user_content_id(collection_id, user_content_id, user, db)
+        return collection_item
+    
+    @classmethod
+    async def edit_collection_item_by_id(cls,
+                                         collection_id: int,
+                                         item_id: int,
+                                         edit_collection_item_scheme: TextItemScheme,
+                                         user: User = Depends(get_current_user),
+                                         db: AsyncSession = Depends(get_session_db)):
+        collection_item = await collectionServ.edit_collection_item_by_id(collection_id, item_id, edit_collection_item_scheme, user, db)
+        return collection_item
+
+    @classmethod
+    async def edit_collection_item_by_user_content_id(cls,
+                                         collection_id: int,
+                                         user_content_id: int,
+                                         edit_collection_item_scheme: TextItemScheme,
+                                         user: User = Depends(get_current_user),
+                                         db: AsyncSession = Depends(get_session_db)):
+        collection_item = await collectionServ.edit_collection_item_by_user_content_id(collection_id, user_content_id, edit_collection_item_scheme, user, db)
+        return collection_item
+    
+    @classmethod
+    async def delete_collection_item(cls,
+                                     collection_id: int,
+                                     item_id: int,
+                                     user: User = Depends(get_current_user),
+                                     db: AsyncSession = Depends(get_session_db)):
+        collection_item = await collectionServ.delete_collection_item(collection_id, item_id, user, db)
+        return collection_item
+    
+    @classmethod
+    async def find_proxime_items(cls,
+                                 collection_id: int,
+                                 find_proxime_items_scheme: TextItemScheme,
+                                 save: bool=False,
+                                 count: int=-1,
+                                 limit_accuracy: float=1.0,
+                                 user: User = Depends(get_current_user),
+                                 db: AsyncSession = Depends(get_session_db)):
+        
+        collection_items = await collectionServ.find_proxime_items(collection_id, find_proxime_items_scheme, save, count, limit_accuracy, user, db)
+        return collection_items
 
 spsRouter = SemanticProximityRouter()
 

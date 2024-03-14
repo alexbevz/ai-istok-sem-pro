@@ -138,7 +138,7 @@ class CrudRepository:
             model = result.scalars().all()
             for item in model:
                 await session.delete(item)
-            models.append(model)
+                models.append(item)
             await session.flush()
             return models
         except IntegrityError as e:
