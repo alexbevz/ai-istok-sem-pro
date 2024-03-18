@@ -1,43 +1,40 @@
 version: "3.8"
 services:
-  api:
+  service_db_postgres:
+    container_name: db_postgres
+    image: postgres
     restart: always
-    container_name: python_sematic_search
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ai-finder
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: qwe123!@#
+
+  api:
+    container_name: api_sem
+    restart: always 
     command: api
-    build:
-      context: .
+    build: .
     ports:
       - "8000:8000"
     environment:
       PYTHONUNBUFFERED: 1
-      DB_HOST: localhost
-      DB_NAME: postgres
-      DB_USER: postgres
+      DB_HOST: service_db_postgres
+      DB_NAME: ai-finder
+      DB_USER: admin
     env_file:
       - .env
     depends_on:
       - service_db_postgres
       - service_db_qdrant
 
-  service_db_postgres:
-    container_name: db_postgres
-    image: postgres
-    restart: always
-    volumes:
-      - db_apps/postgres:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-
   service_db_qdrant:
     container_name: db_qdrant
     image: qdrant/qdrant
     restart: always
     volumes:
-      - db_apps/qdrant:/qdrant/storage:z
+      - ./db_apps/qdrant:/qdrant/storage:z
     ports:
       - "6333:6333"
       - "6334:6334"
