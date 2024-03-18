@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  api:
+    container_name: python_sematic_search
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONUNBUFFERED: 1
+      SERVICE_DB_HOST: service_db
+      SERVICE_DB_NAME: postgres
+      SERVICE_DB_USERNAME: postgres
+    env_file:
+      - .env
+
+  service_db:
+    container_name: db_postgres
+    image: postgres
+    restart: always
+    volumes:
+      - ~/db_apps/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  service_db_quadrant:
+    container_name: quadrant_db
+    image: qdrant/qdrant
+    restart: always
+    volumes:
+      - /db_apps/qdrant:/qdrant/storage:z
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    
