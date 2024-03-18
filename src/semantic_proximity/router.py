@@ -1,5 +1,3 @@
-from typing import Annotated
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,17 +7,10 @@ from src.auth.dependency import get_current_user
 from src.auth.model import User
 
 from src.semantic_proximity.service import proximityServ, collectionServ
-from src.semantic_proximity.scheme import (BaseDataCollectionScheme,
-                                           BaseCollectionItemScheme,
-                                           ModelDataCollectionScheme,
-                                           ModelCollectionItemScheme,
-                                           ProximityRequestScheme,
-                                           ProximityResponseScheme,
-                                           TextProximityItemScheme,
-                                           CreateDataCollectionScheme,
-                                           GetDataCollectionScheme,
+from src.semantic_proximity.scheme import (ProximityRequestScheme,
                                            EditDataCollectionScheme,
-                                           TextItemScheme)
+                                           TextItemScheme,
+                                           CreateDataCollectionScheme)
 
 
 class SemanticProximityRouter(APIRouter):
@@ -57,7 +48,6 @@ class SemanticProximityRouter(APIRouter):
                                 create_collection_scheme: CreateDataCollectionScheme,
                                 user: User = Depends(get_current_user),
                                 db: AsyncSession = Depends(get_session_db)):
-        
         collection = await collectionServ.create_collection(create_collection_scheme, user, db)
         return collection
     
@@ -65,7 +55,6 @@ class SemanticProximityRouter(APIRouter):
     async def get_all_collections(cls,
                                   user: User = Depends(get_current_user),
                                   db: AsyncSession = Depends(get_session_db)):
-        
         collections = await collectionServ.get_user_collections(user, db)
         return collections
 
@@ -74,7 +63,6 @@ class SemanticProximityRouter(APIRouter):
                              collection_id: int,
                              user: User = Depends(get_current_user),
                              db: AsyncSession = Depends(get_session_db)):
-        
         collection = await collectionServ.get_collection_by_id(collection_id, user, db)
         return collection
 
@@ -84,7 +72,6 @@ class SemanticProximityRouter(APIRouter):
                               edit_collection_scheme: EditDataCollectionScheme,
                               user: User = Depends(get_current_user),
                               db: AsyncSession = Depends(get_session_db)):
-        
         collection = await collectionServ.edit_collection_by_id(collection_id, edit_collection_scheme, user, db)
         return collection
 
@@ -93,7 +80,6 @@ class SemanticProximityRouter(APIRouter):
                                 collection_id: int,
                                 user: User = Depends(get_current_user),
                                 db: AsyncSession = Depends(get_session_db)):
-        
         collection = await collectionServ.delete_collection_by_id(collection_id, user, db)
         return collection
 
@@ -104,7 +90,6 @@ class SemanticProximityRouter(APIRouter):
                                   add_collection_item_scheme: TextItemScheme,
                                   user: User = Depends(get_current_user),
                                   db: AsyncSession = Depends(get_session_db)):
-        
         collection_item = await collectionServ.add_collection_item(collection_id, add_collection_item_scheme, user, db)
         return collection_item
     
