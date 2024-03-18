@@ -23,6 +23,9 @@ services:
       DB_HOST: service_db_postgres
       DB_NAME: ai-finder
       DB_USER: admin
+      DB_QDRANT: service_db_qdrant
+    volumes:
+      - ./LaBSE:/model/LaBSE
     env_file:
       - .env
     depends_on:
