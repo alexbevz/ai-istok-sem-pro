@@ -1,5 +1,8 @@
 *.lock
 
+# jupyter notebooks
+*.ipynb
+src/nb/*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,windows,pycharm+all,visualstudiocode,git,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,windows,pycharm+all,visualstudiocode,git,linux
