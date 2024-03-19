@@ -30,6 +30,9 @@ scipy = "*"
 sympy = "*"
 fastembed = "*"
 plotly = "*"
+pytest = "*"
+aiosqlite = "*"
+pytest-asyncio = "*"
 
 [requires]
 python_version = "3.11"
