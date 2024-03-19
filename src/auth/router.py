@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependency import get_current_user, RoleChecker, oauth2_scheme
 from src.auth.model import User
-from src.auth.scheme import UpdatingUserScheme, LoginAuthScheme, RegisterAuthScheme
+from src.auth.scheme import TokensScheme, UpdatingUserScheme, LoginAuthScheme, RegisterAuthScheme
 from src.auth.service import roleServ, userServ, authServ
 from src.database import get_session_db
 from src.scheme import PageScheme
@@ -68,8 +68,7 @@ class AuthRouter(APIRouter):
         self.add_api_route(endpoint=self.register, path='/register', methods=['POST'], )
         self.add_api_route(endpoint=self.login, path='/login', methods=['POST'], )
         self.add_api_route(endpoint=self.check, path='/check', methods=['POST'], )
-        # self.add_api_route(endpoint=self.update_access_token, path='/tokens/access', methods=['POST'], )
-        # self.add_api_route(endpoint=self.update_refresh_token, path='/tokens/refresh', methods=['POST'], )
+        self.add_api_route(endpoint=self.update_access_token, path='/tokens/access', methods=['POST'], )
         self.add_api_route(endpoint=self.logout, path='/logout', methods=['POST'], )
 
     @classmethod
@@ -87,12 +86,9 @@ class AuthRouter(APIRouter):
         await authServ.is_authenticated(token)
 
     @classmethod
-    async def update_access_token(cls):
-        pass
-
-    @classmethod
-    async def update_refresh_token(cls):
-        pass
+    async def update_access_token(cls, tokens: TokensScheme) -> TokensScheme:
+        new_access_refresh = await authServ.update_access_token(tokens)
+        return new_access_refresh 
 
     @classmethod
     async def logout(cls, token: Annotated[str, Depends(oauth2_scheme)]):

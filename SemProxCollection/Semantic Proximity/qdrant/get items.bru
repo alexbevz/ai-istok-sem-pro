@@ -1,0 +1,25 @@
+meta {
+  name: get items
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{qdrant_url}}/collections/{{collection_name}}/points/scroll
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "with_vectors": false
+  }
+}
+
+vars:pre-request {
+  collection_name: test
+}

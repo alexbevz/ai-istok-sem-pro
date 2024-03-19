@@ -1,5 +1,5 @@
 from src.scheme import BaseScheme
-
+from typing import Optional
 
 class BaseRoleScheme(BaseScheme):
     name: str
@@ -46,7 +46,7 @@ class LoginAuthScheme(BaseAuthScheme):
 
 
 class RegisterAuthScheme(BaseAuthScheme):
-    email: str = None
+    email: Optional[str] = None
 
 
 class TokensScheme(BaseScheme):
