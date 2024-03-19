@@ -12,7 +12,8 @@ class QdrantClientManager():
     def __enter__(self) -> QdrantClient:
         # NOTE: в будущем можно переписать под AsyncQdrantClient
         self._client = QdrantClient(host=self._host,
-                                    port=self._port)
+                                    port=self._port,
+                                    timeout=32)
         return self._client
     
     def __exit__(self, exc_type, exc_value, traceback) -> None:

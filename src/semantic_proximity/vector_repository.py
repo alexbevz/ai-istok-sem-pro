@@ -13,9 +13,12 @@ class VectorRepository:
     @classmethod
     def create_collection(cls, collection_name: str) -> str:
         with QdrantClientManager() as client:
-            client.create_collection(collection_name=collection_name,
+            success = client.create_collection(collection_name=collection_name,
                                      vectors_config=qdrant_config.get_vector_config())
-        return collection_name
+            if success:
+                return collection_name
+            else:
+                return None
     
     @classmethod
     def recreate_collection(cls, collection_name: str) -> str:

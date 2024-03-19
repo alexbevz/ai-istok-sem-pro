@@ -78,10 +78,13 @@ class CollectionService:
             name=create_collection_scheme.name,
             qdrant_table_name=qdrant_table_name)
         data_collection_model = DataCollection(**data_collection_scheme.model_dump())
-        vectorRep.create_collection(data_collection_scheme.qdrant_table_name)
-        data_collection = await collectionRep.create(model=data_collection_model,
+        if vectorRep.create_collection(data_collection_scheme.qdrant_table_name):
+        #vectorRep.create_collection(data_collection_scheme.qdrant_table_name)
+            data_collection = await collectionRep.create(model=data_collection_model,
                                                           session=db)
-        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
+            return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error while creating collection {create_collection_scheme.name}")
 
 
     @classmethod
