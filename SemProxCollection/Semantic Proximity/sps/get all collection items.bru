@@ -1,0 +1,30 @@
+meta {
+  name: get all collection items
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items?offset=0&limit=10
+  body: none
+  auth: bearer
+}
+
+query {
+  offset: 0
+  limit: 10
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  collection_id: 1
+}
+
+script:post-response {
+  //let jsonData = res.body.result;
+  //let id = jsonData[0].id;
+  //bru.setEnvVar("item_id", id);
+}

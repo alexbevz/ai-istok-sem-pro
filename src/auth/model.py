@@ -27,7 +27,7 @@ class User(BaseModel):
 
     username = Column(String(32), nullable=False, unique=True)
     password = Column(String(), nullable=False)
-    email = Column(String(32), nullable=True, unique=True, default='')
+    email = Column(String(32), nullable=True, unique=False, default='')
 
     roles = relationship(Role, secondary=UserRole.__tablename__, lazy='joined', )
 

@@ -1,0 +1,15 @@
+meta {
+  name: get all collections
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{qdrant_url}}/collections
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

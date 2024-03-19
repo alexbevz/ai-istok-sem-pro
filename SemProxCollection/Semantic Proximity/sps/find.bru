@@ -1,0 +1,29 @@
+meta {
+  name: find
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v0/sps/find
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "content": "Рабочие станции на АО НПП Исток им. Шокина",
+      "compared_items": [
+          {
+              "content": "Монитор Валдай"
+          },
+          {
+              "content": "Монитор BenQ"
+          }
+      ]
+  }
+}
