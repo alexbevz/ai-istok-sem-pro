@@ -1,0 +1,20 @@
+meta {
+  name: delete collection item by id
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/{{item_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  collection_id: 1
+  item_id: 1
+}

@@ -1,7 +1,7 @@
 from qdrant_client.models import Distance, VectorParams
-
+from os import getenv
 class QdrantConfig:
-    _host: str = "localhost"
+    _host: str = getenv('DB_QDRANT', 'localhost')
     _port: int = 6333
     _vector_size: int = 768
     _distance_metric: Distance = Distance.COSINE
@@ -23,7 +23,7 @@ class QdrantConfig:
 
 
 class EmbeddingConfig:
-    _embedding_model: str = 'sentence-transformers/LaBSE'
+    _embedding_model: str = '/model/LaBSE'#'sentence-transformers/LaBSE'
 
     def get_embedding_model(self) -> str:
         return self._embedding_model

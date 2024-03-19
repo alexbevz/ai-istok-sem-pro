@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Semantic Proximity",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

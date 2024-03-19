@@ -1,5 +1,5 @@
 import contextlib
-from typing import AsyncIterator
+from typing import AsyncGenerator, AsyncIterator
 
 from src.config import DatabaseConfig
 
@@ -62,7 +62,7 @@ db_session_manager = DatabaseSessionManager()
 db_session_manager.init(db_config.get_url())
 
 
-async def get_session_db() -> AsyncIterator[AsyncSession]:
+async def get_session_db() -> AsyncGenerator[AsyncSession, None]:
     async with db_session_manager.session() as session:
         yield session
 
