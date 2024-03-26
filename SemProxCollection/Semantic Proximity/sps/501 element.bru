@@ -1,7 +1,7 @@
 meta {
-  name: add collection items
+  name: 501 element
   type: http
-  seq: 6
+  seq: 15
 }
 
 post {
@@ -14,18 +14,17 @@ auth:bearer {
   token: {{token}}
 }
 
-body:json {
-  [
-    {
-      "content": "Молния",
-      "user_content_id": "42"
-    },
-    {
-      "content": "Плазма"
-    }
-  ]
-}
-
 vars:pre-request {
   collection_id: 1
+}
+
+script:pre-request {
+  let array = []
+  for(let i = 0; i<501; i++){
+    let content = {
+      "content": `item_${i}`
+    }
+    array.push(content)
+  }
+  req.setBody(array)
 }
