@@ -26,7 +26,7 @@ _Сервис определения семантической близости
 ### 
 
 ## Предложения по схеме базы данных
-![img.png](img.png)
+![DataBaseStract](database.drawio.svg)
 
 
 ## Предложения по REST API интерфейсу (endpoints)

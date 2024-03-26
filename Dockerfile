@@ -13,7 +13,7 @@ RUN pipenv install
 COPY ./alembic ./alembic
 COPY ./src ./src
 COPY ./test ./test
-COPY ./alembic.ini .
+COPY ./alembic.ini ./alembic.ini
 COPY ./main.py .
 COPY ./docker-entrypoint.sh .
 
