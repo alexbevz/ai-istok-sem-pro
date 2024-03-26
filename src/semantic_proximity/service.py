@@ -214,6 +214,8 @@ class CollectionService:
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
+        if len(items_list) > 500:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Batch is too big. Max 500 items")
         if not data_collection:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
