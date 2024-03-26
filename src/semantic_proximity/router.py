@@ -26,6 +26,7 @@ class SemanticProximityRouter(APIRouter):
         self.add_api_route(endpoint=self.delete_collection, path="/collections/{collection_id}", methods=['DELETE'])
 
         self.add_api_route(endpoint=self.add_collection_item, path="/collections/{collection_id}/items", methods=['POST'])
+        self.add_api_route(endpoint=self.add_all_collection_items, path="/collections/{collection_id}/items/batch", methods=['POST'])
         self.add_api_route(endpoint=self.get_all_collection_items, path="/collections/{collection_id}/items", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection_item_by_user_content_id, path='/collections/{collection_id}/items/content/{user_content_id}', methods=['GET'])
@@ -93,6 +94,15 @@ class SemanticProximityRouter(APIRouter):
         collection_item = await collectionServ.add_collection_item(collection_id, add_collection_item_scheme, user, db)
         return collection_item
     
+    @classmethod
+    async def add_all_collection_items(cls,
+                                       collection_id: int,
+                                       add_collection_items_scheme: list[TextItemScheme],
+                                       user: User = Depends(get_current_user),
+                                       db: AsyncSession = Depends(get_session_db)):
+        collection_items = await collectionServ.add_collection_items(collection_id, add_collection_items_scheme, user, db)
+        return collection_items
+
     @classmethod
     async def get_all_collection_items(cls,
                                        collection_id: int,

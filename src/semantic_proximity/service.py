@@ -205,6 +205,51 @@ class CollectionService:
         return collection_item_scheme
 
     @classmethod
+    async def add_collection_items(cls,
+                                   collection_id: int,
+                                   items_list: list[TextItemScheme],
+                                   user: User,
+                                   db: AsyncSession) -> list[ModelCollectionItemScheme]:
+
+        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
+        data_collection = await collectionRep.get_by_id(model_id=collection_id,
+                                                              session=db)
+        if not data_collection:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
+                                                                          from_attributes=True)
+        if data_collection_scheme.user_id!= user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+        collection_item_models = []
+        payloads = []
+        vectors = []
+        for item in items_list:
+            collection_item_scheme = BaseCollectionItemScheme(
+                data_collection_id=collection_id,
+                content=item.content,
+                user_content_id=item.user_content_id
+            )
+            collection_item_models.append(CollectionItem(**collection_item_scheme.model_dump()))
+            payloads.append({
+                "content": collection_item_scheme.content
+            })
+            vectors.append(embed(item.content))
+        collection_item_models = await itemRep.create_all(models=collection_item_models,
+                                                            session=db)
+        collection_items = [ModelCollectionItemScheme.model_validate(collection_item,
+                                                                              from_attributes=True) for collection_item in collection_item_models]
+        points = [PointStruct(
+                id=collection_item.id,
+                payload=payload,
+                vector=vector
+            ) for collection_item, payload, vector in zip(collection_items, payloads, vectors)]
+        vectorRep.add_points(collection_name=data_collection.qdrant_table_name,
+                             points=points)
+        return collection_items
+        
+
+
+    @classmethod
     async def get_all_collection_items(cls,
                                        collection_id: int,
                                        offset: int,
