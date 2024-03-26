@@ -1,17 +1,22 @@
-version: "3.8"
+#version: "3.8"
 services:
   service_db_postgres:
+#    user: "${UID}:${GID}"
     container_name: db_postgres
     image: postgres
     restart: always
     ports:
       - "5432:5432"
+#    env_file:
+#      - .env
     environment:
+      #UID: 1000
+      #GID: 1000
       POSTGRES_DB: ai-finder
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: qwe123!@#
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - ./db_apps/postgres:/var/lib/postgresql/data:z
 
   api:
     container_name: api_sem
