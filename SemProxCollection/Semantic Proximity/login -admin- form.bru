@@ -1,12 +1,12 @@
 meta {
-  name: refresh access
+  name: login -admin- form
   type: http
-  seq: 5
+  seq: 2
 }
 
 post {
-  url: {{base_url}}/api/v0/auth/tokens/access
-  body: json
+  url: {{base_url}}/api/v0/auth/login/form
+  body: formUrlEncoded
   auth: bearer
 }
 
@@ -16,9 +16,14 @@ auth:bearer {
 
 body:json {
   {
-      "access_token": "{{token}}",
-      "refresh_token": "{{refresh_token}}"
+      "username": "admin",
+      "password": "admin"
   }
+}
+
+body:form-urlencoded {
+  username: admin
+  password: admin
 }
 
 script:post-response {

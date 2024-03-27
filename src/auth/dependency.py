@@ -9,7 +9,7 @@ from src.auth.model import User
 from src.database import get_session_db
 from src.auth.service import authServ
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/login')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v0/auth/login/form')
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],

@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from fastapi.security import OAuth2PasswordRequestForm
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +20,14 @@ class RoleRouter(APIRouter):
 
     @classmethod
     async def get_all(cls, db: AsyncSession = Depends(get_session_db)):
+        """_summary_
+
+        Args:
+            db (AsyncSession, optional): _description_. Defaults to Depends(get_session_db).
+
+        Returns:
+            _type_: _description_
+        """
         roles_schema = await roleServ.get_model_scheme_all(db)
         return roles_schema
 
@@ -25,7 +35,7 @@ class RoleRouter(APIRouter):
 class UserRouter(APIRouter):
     def __init__(self):
         super().__init__(prefix='/users', tags=['Пользователи'], dependencies=[Depends(RoleChecker({'admin'}))])
-        self.add_api_route(endpoint=self.get_me, path='/me}', methods=['GET'],
+        self.add_api_route(endpoint=self.get_me, path='/me', methods=['GET'],
                            dependencies=[Depends(RoleChecker({'user'}))])
         self.add_api_route(endpoint=self.get_all, path='/all', methods=['GET'])
         self.add_api_route(endpoint=self.get_by_id, path='/{user_id}', methods=['GET'])
@@ -67,6 +77,7 @@ class AuthRouter(APIRouter):
         super().__init__(prefix='/auth', tags=['Авторизация'])
         self.add_api_route(endpoint=self.register, path='/register', methods=['POST'], )
         self.add_api_route(endpoint=self.login, path='/login', methods=['POST'], )
+        self.add_api_route(endpoint=self.login_form, path='/login/form', methods=['POST'], )
         self.add_api_route(endpoint=self.check, path='/check', methods=['POST'], )
         self.add_api_route(endpoint=self.update_access_token, path='/tokens/access', methods=['POST'], )
         self.add_api_route(endpoint=self.logout, path='/logout', methods=['POST'], )
@@ -79,6 +90,12 @@ class AuthRouter(APIRouter):
     @classmethod
     async def login(cls, login_auth_scheme: LoginAuthScheme, db: AsyncSession = Depends(get_session_db)):
         tokens_scheme = await authServ.login(login_auth_scheme, db)
+        return tokens_scheme
+    
+    @classmethod
+    async def login_form(cls, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncSession = Depends(get_session_db)):
+        log_shem=LoginAuthScheme(username=form_data.username, password=form_data.password)
+        tokens_scheme = await authServ.login(log_shem, db)
         return tokens_scheme
 
     @classmethod
