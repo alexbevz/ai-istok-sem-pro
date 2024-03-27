@@ -1,0 +1,23 @@
+meta {
+  name: file upload
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/file
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:multipart-form {
+  file: @file(/home/savyaznikov/test.csv)
+}
+
+vars:pre-request {
+  collection_id: 2
+}
