@@ -26,7 +26,8 @@ from src.semantic_proximity.scheme import (BaseDataCollectionScheme,
                                            GetDataCollectionScheme,
                                            EditDataCollectionScheme,
                                            TextItemScheme,
-                                           GetAllCollectionElementsScheme)
+                                           GetAllCollectionElementsScheme,
+                                           NumberOfCreatedItemsScheme)
 
 from src.semantic_proximity.vector_repository import vectorRep
 from src.semantic_proximity.config import QdrantConfig, FileConfig
@@ -259,7 +260,7 @@ class CollectionService:
                                              collection_id: int,
                                              file,
                                              user: User,
-                                             db: AsyncSession) -> list[ModelCollectionItemScheme]:
+                                             db: AsyncSession) -> NumberOfCreatedItemsScheme:
         handler = get_handler(file.filename)
         file_object = file.file
         items = handler(file_object)
@@ -277,7 +278,10 @@ class CollectionService:
                                               user=user,
                                               db=db)
             response_items.extend(collection_items)
-        return response_items
+        number_of_created_items = NumberOfCreatedItemsScheme(
+            total=len(response_items)
+        )
+        return number_of_created_items
 
     @classmethod
     async def get_all_collection_items(cls,

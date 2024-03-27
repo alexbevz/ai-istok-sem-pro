@@ -115,8 +115,8 @@ class SemanticProximityRouter(APIRouter):
                                   file: UploadFile,
                                   user: User = Depends(get_current_user),
                                   db: AsyncSession = Depends(get_session_db)):
-        collection_items = await collectionServ.add_collection_items_from_file(collection_id, file, user, db)
-        return len(collection_items)
+        number_of_created_items = await collectionServ.add_collection_items_from_file(collection_id, file, user, db)
+        return number_of_created_items
 
     @classmethod
     async def get_all_collection_items(cls,

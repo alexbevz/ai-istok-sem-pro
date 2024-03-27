@@ -52,3 +52,6 @@ class GetAllCollectionElementsScheme(BaseScheme):
     offset: int
     limit: int
     total: int
+
+class NumberOfCreatedItemsScheme(BaseScheme):
+    total: int
