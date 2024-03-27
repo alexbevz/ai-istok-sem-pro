@@ -7,7 +7,8 @@ from src.auth.scheme import ModelUserScheme
 from src.auth.model import User
 from src.semantic_proximity.util import (EmbeddingUtil,
                                          SimilarityUtil,
-                                         CollectionUtil)
+                                         CollectionUtil,
+                                         FileUtil)
 
 from src.semantic_proximity.model import CollectionItem, DataCollection
 
@@ -28,7 +29,7 @@ from src.semantic_proximity.scheme import (BaseDataCollectionScheme,
                                            GetAllCollectionElementsScheme)
 
 from src.semantic_proximity.vector_repository import vectorRep
-from src.semantic_proximity.config import QdrantConfig
+from src.semantic_proximity.config import QdrantConfig, FileConfig
 
 embed = EmbeddingUtil.calculate_embedding
 
@@ -36,6 +37,10 @@ distance_metric = QdrantConfig().get_distance_metric()
 distance = SimilarityUtil.choose_distance_metric(distance_metric)
 
 qdrant_name = CollectionUtil.convert_name_to_qdrant
+
+get_handler = FileUtil.get_file_handler
+
+batch_size = FileConfig().get_batch_size()
 
 class ProximityService:
 
@@ -214,8 +219,8 @@ class CollectionService:
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
-        if len(items_list) > 500:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Batch is too big. Max 500 items")
+        if len(items_list) > batch_size:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Batch is too big. Max {batch_size} items")
         if not data_collection:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
@@ -249,6 +254,30 @@ class CollectionService:
         return collection_items
         
 
+    @classmethod
+    async def add_collection_items_from_file(cls,
+                                             collection_id: int,
+                                             file,
+                                             user: User,
+                                             db: AsyncSession) -> list[ModelCollectionItemScheme]:
+        handler = get_handler(file.filename)
+        file_object = file.file
+        items = handler(file_object)
+        batches = [items[i:i+batch_size] for i in range(0, len(items), batch_size)]
+        response_items = []
+        for batch in batches:
+            item_list = [
+                TextItemScheme(
+                    content=item['content'],
+                    user_content_id=item['user_content_id']
+                ) for item in batch
+            ]
+            collection_items = await cls.add_collection_items(collection_id=collection_id,
+                                              items_list=item_list,
+                                              user=user,
+                                              db=db)
+            response_items.extend(collection_items)
+        return response_items
 
     @classmethod
     async def get_all_collection_items(cls,

@@ -13,6 +13,8 @@ from src.semantic_proximity.scheme import (ProximityRequestScheme,
                                            CreateDataCollectionScheme)
 
 
+from fastapi import File, UploadFile
+
 class SemanticProximityRouter(APIRouter):
 
     def __init__(self):
@@ -37,6 +39,16 @@ class SemanticProximityRouter(APIRouter):
         self.add_api_route(endpoint=self.find_proxime_items_by_id, path="/collections/{collection_id}/items/{item_id}/find", methods=['GET'])
         self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['GET'])
 
+        self.add_api_route(endpoint=self.add_items_from_file, path="/collections/{collection_id}/items/file", methods=['POST'])
+
+    @classmethod
+    async def add_items_from_file(cls,
+                                  collection_id: int,
+                                  file: UploadFile,
+                                  user: User = Depends(get_current_user),
+                                  db: AsyncSession = Depends(get_session_db)):
+        collection_items = await collectionServ.add_collection_items_from_file(collection_id, file, user, db)
+        return collection_items
 
 
     @classmethod

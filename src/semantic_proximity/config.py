@@ -1,5 +1,6 @@
 from qdrant_client.models import Distance, VectorParams
 from os import getenv
+
 class QdrantConfig:
     _host: str = getenv('DB_QDRANT', 'localhost')
     _port: int = 6333
@@ -28,3 +29,8 @@ class EmbeddingConfig:
     def get_embedding_model(self) -> str:
         return self._embedding_model
 
+class FileConfig:
+    _max_batch_size: int = 500
+
+    def get_batch_size(self) -> int:
+        return self._max_batch_size
