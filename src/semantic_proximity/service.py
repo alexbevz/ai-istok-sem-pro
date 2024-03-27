@@ -285,7 +285,7 @@ class CollectionService:
                                        offset: int,
                                        limit: int,
                                        user: User,
-                                       db: AsyncSession):
+                                       db: AsyncSession) -> GetAllCollectionElementsScheme:
 
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -318,7 +318,7 @@ class CollectionService:
                                   collection_id: int,
                                   item_id: int,
                                   user: User,
-                                  db: AsyncSession):
+                                  db: AsyncSession)->ModelDataCollectionScheme:
         # TODO: дописать метод позже
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -342,7 +342,7 @@ class CollectionService:
                                   collection_id: int,
                                   user_content_id: int,
                                   user: User,
-                                  db: AsyncSession):
+                                  db: AsyncSession) -> ModelCollectionItemScheme:
         
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -369,7 +369,7 @@ class CollectionService:
                                          item_id: int,
                                          edit_collection_item_scheme: TextItemScheme,
                                          user: User,
-                                         db: AsyncSession):
+                                         db: AsyncSession) -> ModelDataCollectionScheme:
         
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -410,7 +410,7 @@ class CollectionService:
                                          user_content_id: int,
                                          edit_collection_item_scheme: TextItemScheme,
                                          user: User,
-                                         db: AsyncSession):
+                                         db: AsyncSession) -> ModelDataCollectionScheme:
         
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -452,7 +452,7 @@ class CollectionService:
                                            collection_id: int,
                                            item_id: int,
                                            user: User,
-                                           db: AsyncSession):
+                                           db: AsyncSession) -> ModelCollectionItemScheme:
         
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
@@ -483,7 +483,7 @@ class CollectionService:
                                  count: int,
                                  limit_accuracy: float,
                                  user: User,
-                                 db: AsyncSession):
+                                 db: AsyncSession)->ProximityResponseScheme:
 
         count, limit_accuracy = int(count), float(limit_accuracy)
         if type(save) == str:
@@ -540,7 +540,7 @@ class CollectionService:
                                        count: int,
                                        limit_accuracy: float,
                                        user: User,
-                                       db: AsyncSession):
+                                       db: AsyncSession)->ProximityResponseScheme:
         
         collection_item = await cls.get_collection_item_by_id(
             collection_id=collection_id,
@@ -568,7 +568,7 @@ class CollectionService:
                                                     count: int,
                                                     limit_accuracy: float,
                                                     user: User,
-                                                    db: AsyncSession):
+                                                    db: AsyncSession)->ProximityResponseScheme:
         
         collection_item = await cls.get_collection_item_by_user_content_id(
             collection_id=collection_id,
