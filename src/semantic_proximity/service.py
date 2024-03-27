@@ -223,8 +223,6 @@ class CollectionService:
         if data_collection_scheme.user_id!= user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
         collection_item_models = []
-        payloads = []
-        vectors = []
         for item in items_list:
             collection_item_scheme = BaseCollectionItemScheme(
                 data_collection_id=collection_id,
@@ -232,14 +230,15 @@ class CollectionService:
                 user_content_id=item.user_content_id
             )
             collection_item_models.append(CollectionItem(**collection_item_scheme.model_dump()))
-            payloads.append({
-                "content": collection_item_scheme.content
-            })
-            vectors.append(embed(item.content))
         collection_item_models = await itemRep.create_all(models=collection_item_models,
                                                             session=db)
         collection_items = [ModelCollectionItemScheme.model_validate(collection_item,
                                                                               from_attributes=True) for collection_item in collection_item_models]
+        
+        vectors = embed([item.content for item in collection_items])
+        payloads = [{
+            "content": item.content
+        } for item in collection_items]
         points = [PointStruct(
                 id=collection_item.id,
                 payload=payload,
