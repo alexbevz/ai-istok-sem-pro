@@ -29,26 +29,20 @@ class SemanticProximityRouter(APIRouter):
 
         self.add_api_route(endpoint=self.add_collection_item, path="/collections/{collection_id}/items", methods=['POST'])
         self.add_api_route(endpoint=self.add_all_collection_items, path="/collections/{collection_id}/items/batch", methods=['POST'])
+        self.add_api_route(endpoint=self.add_items_from_file, path="/collections/{collection_id}/items/file", methods=['POST'])
+
         self.add_api_route(endpoint=self.get_all_collection_items, path="/collections/{collection_id}/items", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection_item_by_user_content_id, path='/collections/{collection_id}/items/content/{user_content_id}', methods=['GET'])
+
         self.add_api_route(endpoint=self.edit_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['PUT'])
         self.add_api_route(endpoint=self.edit_collection_item_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}", methods=['PUT'])
+
         self.add_api_route(endpoint=self.delete_collection_item, path="/collections/{collection_id}/items/{item_id}", methods=['DELETE'])
+
         self.add_api_route(endpoint=self.find_proxime_items, path="/collections/{collection_id}/find", methods=['GET'])
         self.add_api_route(endpoint=self.find_proxime_items_by_id, path="/collections/{collection_id}/items/{item_id}/find", methods=['GET'])
         self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['GET'])
-
-        self.add_api_route(endpoint=self.add_items_from_file, path="/collections/{collection_id}/items/file", methods=['POST'])
-
-    @classmethod
-    async def add_items_from_file(cls,
-                                  collection_id: int,
-                                  file: UploadFile,
-                                  user: User = Depends(get_current_user),
-                                  db: AsyncSession = Depends(get_session_db)):
-        collection_items = await collectionServ.add_collection_items_from_file(collection_id, file, user, db)
-        return collection_items
 
 
     @classmethod
@@ -114,6 +108,15 @@ class SemanticProximityRouter(APIRouter):
                                        db: AsyncSession = Depends(get_session_db)):
         collection_items = await collectionServ.add_collection_items(collection_id, add_collection_items_scheme, user, db)
         return collection_items
+
+    @classmethod
+    async def add_items_from_file(cls,
+                                  collection_id: int,
+                                  file: UploadFile,
+                                  user: User = Depends(get_current_user),
+                                  db: AsyncSession = Depends(get_session_db)):
+        collection_items = await collectionServ.add_collection_items_from_file(collection_id, file, user, db)
+        return len(collection_items)
 
     @classmethod
     async def get_all_collection_items(cls,
