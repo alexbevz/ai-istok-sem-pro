@@ -29,6 +29,13 @@ from src.semantic_proximity.scheme import (BaseDataCollectionScheme,
                                            GetAllCollectionElementsScheme,
                                            NumberOfCreatedItemsScheme)
 
+from src.semantic_proximity.exception import (CollectionAlreadyExistsException,
+                                              CollectionNotExistsException,
+                                              WrongCollectionException,
+                                              BatchSizeException,
+                                              InsuffucientAccessRightsException,
+                                              QdrantCollectionException)
+
 from src.semantic_proximity.vector_repository import vectorRep
 from src.semantic_proximity.config import QdrantConfig, FileConfig
 
@@ -78,19 +85,19 @@ class CollectionService:
                                                                   value=qdrant_table_name,
                                                                   session=db)
         if collection:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Collection with name {create_collection_scheme.name} already exists")
+            raise CollectionAlreadyExistsException(f"Collection with name {create_collection_scheme.name} already exists")
         data_collection_scheme = BaseDataCollectionScheme(
             user_id=user_id,
             name=create_collection_scheme.name,
             qdrant_table_name=qdrant_table_name)
         data_collection_model = DataCollection(**data_collection_scheme.model_dump())
-        if vectorRep.create_collection(data_collection_scheme.qdrant_table_name):
-        #vectorRep.create_collection(data_collection_scheme.qdrant_table_name)
-            data_collection = await collectionRep.create(model=data_collection_model,
+        try:
+           vectorRep.create_collection(data_collection_scheme.qdrant_table_name)
+        except Exception as e:
+            raise QdrantCollectionException(f"Error while creating collection {create_collection_scheme.name}: {e}")
+        data_collection = await collectionRep.create(model=data_collection_model,
                                                           session=db)
-            return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
-        else:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error while creating collection {create_collection_scheme.name}")
+        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
 
     @classmethod
@@ -114,11 +121,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         
         return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
@@ -133,12 +140,12 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                             session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                 from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
-        
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+
         old_name = qdrant_name(user_id=user_id, name=data_collection_scheme.name)
         new_name = qdrant_name(user_id=user_id, name=edit_collection_scheme.name)
         vectorRep.create_from_collection(collection_name=new_name,
@@ -159,11 +166,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         vectorRep.delete_collection(data_collection.qdrant_table_name)
         data_collection = await collectionRep.delete_by_id(model_id=collection_id, session=db)
         await itemRep.delete_all_by_field(field=CollectionItem.data_collection_id,
@@ -182,11 +189,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         collection_item_scheme = BaseCollectionItemScheme(
             data_collection_id=collection_id,
             content=add_collection_item_scheme.content,
@@ -221,13 +228,13 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
         if len(items_list) > batch_size:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Batch is too big. Max {batch_size} items")
+            raise BatchSizeException(f"Batch is too big. Max {batch_size} items")
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                           from_attributes=True)
         if data_collection_scheme.user_id!= user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         collection_item_models = []
         for item in items_list:
             collection_item_scheme = BaseCollectionItemScheme(
@@ -295,11 +302,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                             session=db) 
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.data_collection_id,
                                                                value=data_collection_scheme.id,
@@ -322,23 +329,23 @@ class CollectionService:
                                   collection_id: int,
                                   item_id: int,
                                   user: User,
-                                  db: AsyncSession)->ModelDataCollectionScheme:
+                                  db: AsyncSession)->ModelCollectionItemScheme:
         # TODO: дописать метод позже
         user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         collection_item = await itemRep.get_by_id(model_id=item_id,
                                                 session=db)
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
                                                                             from_attributes=True)
         if collection_item_scheme.data_collection_id != collection_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {item_id} doesn't belong to collection {collection_id}")
+            raise WrongCollectionException(f"Item with id {item_id} doesn't belong to collection {collection_id}")
         return collection_item_scheme
 
     @classmethod
@@ -352,11 +359,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                               session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
                                                             value=user_content_id,
                                                             session=db)
@@ -364,7 +371,7 @@ class CollectionService:
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
                                                                             from_attributes=True)
         if collection_item_scheme.data_collection_id != collection_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {user_content_id} doesn't belong to collection {collection_id}")
+            raise WrongCollectionException(f"Item with id {user_content_id} doesn't belong to collection {collection_id}")
         return collection_item_scheme
 
     @classmethod
@@ -379,17 +386,17 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                             session=db) 
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         
         collection_item = await itemRep.get_by_id(model_id=item_id,
                                                         session=db)
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
         if collection_item_scheme.data_collection_id != collection_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {item_id} doesn't belong to collection {collection_id}")
+            raise WrongCollectionException(f"Item with id {item_id} doesn't belong to collection {collection_id}")
         collection_item.content = edit_collection_item_scheme.content
         collection_item.user_content_id = edit_collection_item_scheme.user_content_id
         collection_item = await itemRep.update(model=collection_item,
@@ -420,11 +427,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                             session=db) 
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                                     from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
                                                          value=user_content_id,
@@ -462,16 +469,16 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                             session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                           from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         collection_item = await itemRep.get_by_id(model_id=item_id,
                                                         session=db)
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
         if collection_item_scheme.data_collection_id != collection_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {item_id} doesn't belong to collection {collection_id}")
+            raise WrongCollectionException(f"Item with id {item_id} doesn't belong to collection {collection_id}")
         collection_item = await itemRep.delete_by_id(model_id=item_id,
                                                     session=db)
         collection_name = data_collection_scheme.qdrant_table_name
@@ -496,11 +503,11 @@ class CollectionService:
         data_collection = await collectionRep.get_by_id(model_id=collection_id,
                                                         session=db)
         if not data_collection:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Collection with id {collection_id} doesn't exist")
+            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
         data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
                                                                           from_attributes=True)
         if data_collection_scheme.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User {user_id} is not owner of collection {collection_id}")
+            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
         vector = embed(find_proxime_items_scheme.content)
         payload = {
             "content": find_proxime_items_scheme.content

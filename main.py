@@ -5,6 +5,8 @@ from src.auth.router import userRouter, roleRouter, authRouter
 
 from src.semantic_proximity.router import spsRouter
 
+from src.handler import exception_handlers
+
 
 description = """
 Данное приложение пердставляет собой API для поиска семантической близости между различными данными с аворизацйией.
@@ -55,6 +57,8 @@ app.include_router(router=userRouter)
 app.include_router(router=authRouter)
 
 app.include_router(router=spsRouter)
+
+app.exception_handlers = exception_handlers
 
 if __name__ == '__main__':
     uvicorn.run(
