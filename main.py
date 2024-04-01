@@ -9,7 +9,7 @@ from src.handler import exception_handlers
 
 
 description = """
-Данное приложение пердставляет собой API для поиска семантической близости между различными данными с аворизацйией.
+API для поиска семантической близости между текстами.
 """
 
 tags_metadata = [
@@ -31,24 +31,19 @@ tags_metadata = [
     },
     {
         "name": "Семантическая близость",
-        "description": "Поиск семантической близости между различными данными с аворизацйией.",
+        "description": "Поиск семантической близости между различными данными.",
     },
 ]
 
 app = FastAPI(root_path='/api/v0',
-              title="SemanticSerchApp",
+              title="SemanticSearchApp",
               description=description,
-              summary="Куку",
+              summary="Семантический поиск",
               version="0.0.1",
               terms_of_service="Some form",
               contact={
                   "name": "Исток",
                   "url": "https://istokmw.ru/",
-                  "email": "Куку.istokmw.ru",
-              },
-              license_info={
-                  "name": "Куку",
-                  "identifier": "Куку",
               },
               openapi_tags=tags_metadata, )
 
