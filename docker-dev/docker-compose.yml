@@ -1,0 +1,47 @@
+services:
+  service_db_postgres:
+    container_name: db_postgres
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ai-finder
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./db_apps/postgres:/var/lib/postgresql/data:z
+
+  api:
+    container_name: api_sem
+    restart: always 
+    command: api
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONUNBUFFERED: 1
+      DB_HOST: service_db_postgres
+      DB_NAME: ai-finder
+      DB_USER: ${DB_USER}
+      DB_QDRANT: service_db_qdrant
+    volumes:
+      - ./LaBSE:/model/LaBSE
+    env_file:
+      - .env
+    depends_on:
+      - service_db_postgres
+      - service_db_qdrant
+
+  service_db_qdrant:
+    container_name: db_qdrant
+    image: qdrant/qdrant
+    restart: always
+    volumes:
+      - ./db_apps/qdrant:/qdrant/storage:z
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    
