@@ -129,7 +129,7 @@ class AuthRouter(APIRouter):
         self.add_api_route(endpoint=self.logout, path='/logout', methods=['POST'], )
 
     @classmethod
-    async def register(cls, register_auth_scheme: RegisterAuthScheme, db: AsyncSession = Depends(get_session_db)):
+    async def register(cls, register_auth_scheme: RegisterAuthScheme, role = Depends(RoleChecker(required_roles={"admin"})), db: AsyncSession = Depends(get_session_db)):
         """Регистрация пользователя
 
         Args:
