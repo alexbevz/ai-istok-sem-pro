@@ -513,7 +513,8 @@ class CollectionService:
             "content": find_proxime_items_scheme.content
         }
         nearest = vectorRep.find_nearest_by_vector(collection_name=data_collection_scheme.qdrant_table_name,
-                                                   vector=vector)
+                                                        limit=count+1,
+                                                        vector=vector)
         filtered_result = [
             TextProximityItemScheme(
                 content=item.payload["content"],
