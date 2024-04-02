@@ -4,6 +4,7 @@
 *.ipynb
 src/nb/*
 
+LaBSE
 LaBSE/*
 db_apps/*
 # Created by https://www.toptal.com/developers/gitignore/api/python,windows,pycharm+all,visualstudiocode,git,linux
