@@ -44,7 +44,6 @@ class SemanticProximityRouter(APIRouter):
         self.add_api_route(endpoint=self.find_proxime_items_by_id, path="/collections/{collection_id}/items/{item_id}/find", methods=['GET'])
         self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['GET'])
 
-        self.add_api_route(endpoint=self.add_items_from_file, path="/collections/{collection_id}/items/file", methods=['POST'])
 
     @classmethod
     async def add_items_from_file(cls,
