@@ -80,6 +80,7 @@ class FileUtil:
     def _get_data_from_dataframe(cls, df: pl.DataFrame):
         df = cls._change_columns_to_lowercase(df)
         cls._check_for_required_columns(df)
+        df = df.with_columns(df['user_content_id'].cast(pl.String))
         data = df.to_dicts()
         return data
         
