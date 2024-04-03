@@ -50,6 +50,7 @@ class SemanticProximityRouter(APIRouter):
     async def add_items_from_file(cls,
                                   collection_id: int,
                                   file: UploadFile,
+                                  separator: str = ',',
                                   user: User = Depends(get_current_user),
                                   db: AsyncSession = Depends(get_session_db)):
         """Добавление элементов коллекции из файла
@@ -57,13 +58,14 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): id коллекции
             file (UploadFile): Файл для добавления в коллекцию
+            separator (str, optional): Разделитель для csv-файлов Defaults to ','.
             user (User, optional): Пользователь к добавляющий колекцию. Defaults to Depends(get_current_user).
             db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             list[ModelCollectionItemScheme]: Список добавленных элементов коллекции
         """
-        collection_items = await collectionServ.add_collection_items_from_file(collection_id, file, user, db)
+        collection_items = await collectionServ.add_collection_items_from_file(collection_id, file, separator, user, db)
         return collection_items
 
 

@@ -266,9 +266,10 @@ class CollectionService:
     async def add_collection_items_from_file(cls,
                                              collection_id: int,
                                              file,
+                                             separator: str,
                                              user: User,
                                              db: AsyncSession) -> NumberOfCreatedItemsScheme:
-        handler = get_handler(file.filename)
+        handler = get_handler(file.filename, separator=separator)
         file_object = file.file
         items = handler(file_object)
         batches = [items[i:i+batch_size] for i in range(0, len(items), batch_size)]

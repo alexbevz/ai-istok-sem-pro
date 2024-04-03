@@ -9,7 +9,8 @@ from src.semantic_proximity.exception import (CollectionAlreadyExistsException,
                                               WrongCollectionException,
                                               BatchSizeException,
                                               InsuffucientAccessRightsException,
-                                              QdrantCollectionException)
+                                              QdrantCollectionException,
+                                              MissingFileColumnsException)
 
 async def teapot_exception_handler(request, exc: TeapotException):
     return JSONResponse(
@@ -77,6 +78,12 @@ async def qdrant_collection_exception_handler(request, exc: QdrantCollectionExce
         content={"detail": f"{exc}"}
     )
 
+async def missing_file_columns_exception_handler(request, exc: MissingFileColumnsException):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": f"{exc}"}
+    )
+
 exception_handlers = {
     TeapotException: teapot_exception_handler,
     CrudException: crud_exception_handler,
@@ -88,5 +95,6 @@ exception_handlers = {
     BatchSizeException: batch_size_exception_handler,
     CollectionAlreadyExistsException: collection_already_exists_exception_handler,
     WrongCollectionException: wrong_collection_exception_handler,
-    QdrantCollectionException: qdrant_collection_exception_handler
+    QdrantCollectionException: qdrant_collection_exception_handler,
+    MissingFileColumnsException: missing_file_columns_exception_handler
 }

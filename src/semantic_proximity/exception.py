@@ -15,3 +15,6 @@ class WrongCollectionException(Exception):
 
 class QdrantCollectionException(Exception):
     pass
+
+class MissingFileColumnsException(Exception):
+    pass
