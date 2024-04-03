@@ -51,9 +51,11 @@ app = FastAPI(root_path='/api/v0',
                   "name": "Исток",
                   "url": "https://istokmw.ru/",
               },
-              openapi_tags=tags_metadata, )
+              openapi_tags=tags_metadata, 
+              docs_url=None,
+              redoc_url=None,)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="/app/static"), name="/app/static")
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -61,8 +63,8 @@ async def custom_swagger_ui_html():
         openapi_url=app.openapi_url,
         title=app.title + " - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_js_url="/static/swagger-ui-bundle.js",
-        swagger_css_url="/static/swagger-ui.css",
+        swagger_js_url="/api/v0/static/swagger-ui-bundle.js",
+        swagger_css_url="/api/v0/static/swagger-ui.css",
     )
 
 @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
@@ -74,7 +76,7 @@ async def redoc_html():
     return get_redoc_html(
         openapi_url=app.openapi_url,
         title=app.title + " - ReDoc",
-        redoc_js_url="/static/redoc.standalone.js",
+        redoc_js_url="/api/v0/static/redoc.standalone.js",
     )
 
 app.include_router(router=roleRouter)
