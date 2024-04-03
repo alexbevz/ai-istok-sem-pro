@@ -18,13 +18,13 @@ alembic = "1.13.1"
 bcrypt = "4.1.2"
 qdrant-client = "1.7.3"
 python-multipart = "0.0.9"
+polars = {extras = ["all"] }
 
 
 [dev-packages]
 ipykernel = "*"
 jupyter = "*"
 ipywidgets = "*"
-polars = {extras = ["all"] }
 pandas = "*"
 matplotlib = "*"
 scikit-learn = "*"

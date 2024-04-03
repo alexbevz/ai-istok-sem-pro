@@ -16,6 +16,6 @@ COPY ./test ./test
 COPY ./alembic.ini ./alembic.ini
 COPY ./main.py .
 COPY ./docker-entrypoint.sh .
-
+COPY ./static .
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
