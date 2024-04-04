@@ -5,6 +5,9 @@ Revises:
 Create Date: 2024-03-05 08:45:35.497408
 
 """
+import os
+from src.auth.util import BcryptUtil
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -58,8 +61,8 @@ def upgrade() -> None:
     op.execute(sa.insert(Role).values(name='user'))
     op.execute(
         sa.insert(User).values(
-            username='admin',
-            password='$2b$12$msAZ4G5YyUTGIDBUpdze/uiNxgMx6XdNjoyfGQhdv2yc0kgOj0caC',
+            username=os.getenv('USER_ADMIN_NAME'),
+            password=BcryptUtil.hash_password(os.getenv('USER_ADMIN_PASSWORD')),
         )
     )
     op.execute(sa.insert(UserRole).values(user_id=1, role_id=1))
