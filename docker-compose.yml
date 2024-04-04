@@ -11,6 +11,8 @@ services:
       POSTGRES_DB: ai-finder
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
+      no_proxy: localhost,service_db_qdrant,service_db_postgres,api
     volumes:
       - ./db_apps/postgres:/var/lib/postgresql/data:z
 
@@ -27,6 +29,8 @@ services:
       DB_NAME: ai-finder
       DB_USER: ${DB_USER}
       DB_QDRANT: service_db_qdrant
+      NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
+      no_proxy: localhost,service_db_qdrant,service_db_postgres,api
     volumes:
       - ./LaBSE:/model/LaBSE
     env_file:
@@ -52,4 +56,7 @@ services:
     ports:
       - "6333:6333"
       - "6334:6334"
+    environment:
+      NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
+      no_proxy: localhost,service_db_qdrant,service_db_postgres,api
     

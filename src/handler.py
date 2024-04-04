@@ -12,6 +12,8 @@ from src.semantic_proximity.exception import (CollectionAlreadyExistsException,
                                               QdrantCollectionException,
                                               MissingFileColumnsException)
 
+from pydantic import ValidationError
+
 async def teapot_exception_handler(request, exc: TeapotException):
     return JSONResponse(
         status_code=status.HTTP_418_IM_A_TEAPOT,
@@ -84,6 +86,12 @@ async def missing_file_columns_exception_handler(request, exc: MissingFileColumn
         content={"detail": f"{exc}"}
     )
 
+async def validation_error_handler(request, exc: ValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": f"{exc}"}
+    )
+
 exception_handlers = {
     TeapotException: teapot_exception_handler,
     CrudException: crud_exception_handler,
@@ -96,5 +104,6 @@ exception_handlers = {
     CollectionAlreadyExistsException: collection_already_exists_exception_handler,
     WrongCollectionException: wrong_collection_exception_handler,
     QdrantCollectionException: qdrant_collection_exception_handler,
-    MissingFileColumnsException: missing_file_columns_exception_handler
+    MissingFileColumnsException: missing_file_columns_exception_handler,
+    ValidationError: validation_error_handler
 }
