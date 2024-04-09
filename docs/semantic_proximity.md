@@ -23,7 +23,41 @@ _Сервис определения семантической близости
 4. __Разработка API:__ Создание программного интерфейса, позволяющего взаимодействовать с моделью через стандартные HTTP-запросы.
 5. __Тестирование и оптимизация:__ Проверка работы модели на тестовых данных, выявление и исправление ошибок, оптимизация производительности.
 6. __Развёртывание и масштабирование:__ Запуск сервиса на сервере, готовность к обработке запросов от множества пользователей.
-### 
+###  
+## Файловая структура  
+```
+└── 📁src
+    └── 📁auth
+        └── config.py
+        └── dependency.py
+        └── exception.py
+        └── model.py
+        └── repository.py
+        └── router.py
+        └── scheme.py
+        └── service.py
+        └── util.py
+    └── config.py
+    └── database.py
+    └── exception.py
+    └── handler.py
+    └── 📁model
+        └── __init__.py
+        └── base.py
+    └── repository.py
+    └── scheme.py
+    └── 📁semantic_proximity
+        └── config.py
+        └── exception.py
+        └── model.py
+        └── repository.py
+        └── router.py
+        └── scheme.py
+        └── service.py
+        └── util.py
+        └── vector_database.py
+        └── vector_repository.py
+```
 
 ## Предложения по схеме базы данных
 ![DataBaseStract](database.drawio.svg)
