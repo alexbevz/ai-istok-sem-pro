@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items?offset=0&limit=10
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items?offset=10&limit=5
   body: none
   auth: bearer
 }
 
 query {
-  offset: 0
-  limit: 10
+  offset: 10
+  limit: 5
 }
 
 auth:bearer {

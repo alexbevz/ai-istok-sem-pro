@@ -5,9 +5,13 @@ meta {
 }
 
 post {
-  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/file
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/file?separator=;
   body: multipartForm
   auth: bearer
+}
+
+query {
+  separator: ;
 }
 
 auth:bearer {
@@ -15,9 +19,9 @@ auth:bearer {
 }
 
 body:multipart-form {
-  file: @file(/home/savyaznikov/test.csv)
+  file: @file(/home/savyaznikov/Загрузки/materials.csv)
 }
 
 vars:pre-request {
-  collection_id: 2
+  collection_id: 1
 }

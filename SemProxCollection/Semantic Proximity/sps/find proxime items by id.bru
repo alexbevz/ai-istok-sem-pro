@@ -4,7 +4,7 @@ meta {
   seq: 14
 }
 
-get {
+post {
   url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/{{item_id}}/find?count=10&limit_accuracy=0.1
   body: json
   auth: bearer
