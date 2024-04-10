@@ -5,16 +5,13 @@ from qdrant_client.models import PointStruct, PointIdsList, Record, InitFrom
 from src.semantic_proximity.vector_database import QdrantClientManager
 from src.semantic_proximity.config import QdrantConfig
 
-qdrant_config = QdrantConfig()
-
-
 class VectorRepository:
 
     @classmethod
     def create_collection(cls, collection_name: str) -> str:
         with QdrantClientManager() as client:
             success = client.create_collection(collection_name=collection_name,
-                                     vectors_config=qdrant_config.get_vector_config())
+                                     vectors_config=QdrantConfig.get_vector_config())
             if success:
                 return collection_name
             else:
@@ -24,14 +21,14 @@ class VectorRepository:
     def recreate_collection(cls, collection_name: str) -> str:
         with QdrantClientManager() as client:
             client.recreate_collection(collection_name=collection_name,
-                                       vectors_config=qdrant_config.get_vector_config())
+                                       vectors_config=QdrantConfig.get_vector_config())
         return collection_name
     
     @classmethod
-    def create_from_collection(cls, collection_name: str, base_collection: str):
+    def create_from_collection(cls, collection_name: str, base_collection: str) -> str:
         with QdrantClientManager() as client:
             client.create_collection(collection_name=collection_name,
-                                     vectors_config=qdrant_config.get_vector_config(),
+                                     vectors_config=QdrantConfig.get_vector_config(),
                                      init_from=InitFrom(collection=base_collection))
         return collection_name
 
@@ -76,12 +73,7 @@ class VectorRepository:
 
     @classmethod
     def delete_point_by_id(cls, collection_name: str, point_id: int):
-        with QdrantClientManager() as client:
-            client.delete(collection_name=collection_name,
-                          points_selector=PointIdsList(
-                                 points=[point_id]
-                                 )
-                         )
+        cls.delete_points_by_ids(collection_name, [point_id])
     
     @classmethod
     def delete_points_by_ids(cls, collection_name: str, point_ids: list[Any]):

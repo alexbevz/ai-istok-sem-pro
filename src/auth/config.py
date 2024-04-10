@@ -1,9 +1,11 @@
+import os
+
 class JwtConfig:
-    _secret_key = '3dcbe5ddffe500ffa2e7b4d427899349cbdf491bddef3b3611a328b966eb874d'
-    _algorithm = 'HS256'
-    _expire_minutes = 5
-    _ttl_access = 5
-    _ttl_refresh = 60 * 24 * 7
+    _secret_key = os.getenv('JWT_SECRET_KEY', '3dcbe5ddffe500ffa2e7b4d427899349cbdf491bddef3b3611a328b966eb874d')
+    _algorithm = os.getenv('JWT_ALGORITHM', 'HS256')
+    _expire_minutes = int(os.getenv('JWT_EXPIRE_MINUTES', 5))
+    _ttl_access = int(os.getenv('JWT_TTL_ACCESS', 5))
+    _ttl_refresh = int(os.getenv('JWT_TTL_REFRESH', 60 * 24))
 
     @classmethod
     def get_secret_key(cls) -> str:
