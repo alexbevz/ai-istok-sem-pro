@@ -1,4 +1,7 @@
-class CollectionNotExistsException(Exception):
+class CollectionDoesNotExistException(Exception):
+    pass
+
+class CollectionItemDoesNotExistException(Exception):
     pass
 
 class InsuffucientAccessRightsException(Exception):
