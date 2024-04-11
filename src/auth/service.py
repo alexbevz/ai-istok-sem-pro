@@ -156,7 +156,7 @@ class AuthService:
         refresh_token = cls.access_refresh_tokens.get(access_token)
 
         if not refresh_token:
-            raise HTTPException(status_code=401)
+            raise InvalidTokenException("Invalid access/refresh token pair")
 
         del cls.access_refresh_tokens[access_token]
         cls.refresh_tokens.remove(refresh_token)
@@ -181,6 +181,8 @@ class AuthService:
             raise InvalidTokenException(f"Error while decoding refresh token: {e}")
 
         user_id = payload.get('id')
+        if not user_id:
+            raise InvalidCredentialsException("Could not validate user id")
         got_user = await userServ.get_by_id(user_id, db)
         return got_user
     
