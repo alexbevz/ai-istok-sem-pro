@@ -1,5 +1,17 @@
 import os
 
+class RedisConfig:
+    _host = os.getenv('DB_REDIS', 'localhost')
+    _port = int(os.getenv('REDIS_PORT', 6379))
+
+    @classmethod
+    def get_host(cls) -> str:
+        return cls._host
+
+    @classmethod
+    def get_port(cls) -> int:
+        return cls._port
+
 class JwtConfig:
     _secret_key = os.getenv('JWT_SECRET_KEY', '3dcbe5ddffe500ffa2e7b4d427899349cbdf491bddef3b3611a328b966eb874d')
     _algorithm = os.getenv('JWT_ALGORITHM', 'HS256')

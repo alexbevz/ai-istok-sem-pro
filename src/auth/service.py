@@ -1,6 +1,5 @@
 import logging
 
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.repository import roleRep, userRep
