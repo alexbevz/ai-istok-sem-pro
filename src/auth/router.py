@@ -23,8 +23,7 @@ class RoleRouter(APIRouter):
         """Получение всех ролей
 
         Args:
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
-
+            
         Returns:
             ModelRoleScheme: схема ролей
         """
@@ -49,8 +48,6 @@ class UserRouter(APIRouter):
         """Получение информации о текущем пользователе
 
         Args:
-            user (Annotated[User, Depends): получение текущего пользователя
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelUserScheme: схема пользователя
@@ -64,7 +61,6 @@ class UserRouter(APIRouter):
 
         Args:
             page_scheme (PageScheme, optional): Схема для получения размера вывода. Defaults to Depends().
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             list[ModelUserScheme]: Список схем пользователей
@@ -78,7 +74,6 @@ class UserRouter(APIRouter):
 
         Args:
             user_id (int): id пользователя
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelUserScheme: схема пользователя
@@ -94,7 +89,6 @@ class UserRouter(APIRouter):
         Args:
             user_id (int): id пользователя
             updated_user_schema (UpdatingUserScheme): схема обновления пользователя
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelUserScheme: схема пользователя
@@ -108,8 +102,7 @@ class UserRouter(APIRouter):
 
         Args:
             user_id (int): ID пользователя
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
-
+            
         Returns:
             ModelUserScheme: схема пользователя
         """
@@ -123,7 +116,7 @@ class AuthRouter(APIRouter):
         super().__init__(prefix='/auth', tags=['Авторизация'])
         self.add_api_route(endpoint=self.register, path='/register', methods=['POST'], )
         self.add_api_route(endpoint=self.login, path='/login', methods=['POST'], )
-        self.add_api_route(endpoint=self.login_form, path='/login/form', methods=['POST'], )
+        self.add_api_route(endpoint=self.login_form, path='/login/form', methods=['POST'], include_in_schema=False)
         self.add_api_route(endpoint=self.check, path='/check', methods=['POST'], )
         self.add_api_route(endpoint=self.update_access_token, path='/tokens/access', methods=['POST'], )
         self.add_api_route(endpoint=self.logout, path='/logout', methods=['POST'], )
@@ -134,7 +127,6 @@ class AuthRouter(APIRouter):
 
         Args:
             register_auth_scheme (RegisterAuthScheme): Cхема регистрации пользователя
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelUserScheme: Схема пользователя
@@ -148,7 +140,6 @@ class AuthRouter(APIRouter):
 
         Args:
             login_auth_scheme (LoginAuthScheme): Схема авторизации пользователя
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             TokensScheme: Схема токенов
@@ -162,7 +153,6 @@ class AuthRouter(APIRouter):
 
         Args:
             form_data (Annotated[OAuth2PasswordRequestForm, Depends): Форма авторизации
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             TokensScheme: Схема токенов

@@ -10,8 +10,11 @@ from src.auth.model import User, Role
 from src.auth.util import BcryptUtil, JwtUtil
 from src.repository import Page
 from src.scheme import PageScheme
-from starlette import status
 
+from src.auth.exception import (UserAlreadyExistsException,
+                                UserDoesNotExistException,
+                                InvalidCredentialsException,
+                                InvalidTokenException)
 
 class RoleService:
 
@@ -111,7 +114,7 @@ userServ = UserService()
 
 
 class AuthService:
-    # TODO and FIXME
+    # TODO and FIXME: импортировать хранение токенов в redis (noSQL)
     access_tokens = set()
     refresh_tokens = set()
     access_refresh_tokens = dict()
@@ -120,13 +123,13 @@ class AuthService:
     async def register(cls, register_auth_scheme: RegisterAuthScheme, db: AsyncSession) -> ModelUserScheme:
         registering_user = await userServ.get_by_username(register_auth_scheme.username, db)
         if registering_user is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='User already exists')
+            raise UserAlreadyExistsException("User already exists")
         encrypted_password = BcryptUtil.hash_password(register_auth_scheme.password)
         creating_user_scheme = CreatingUserScheme.model_validate({
             'username': register_auth_scheme.username,
             'password': encrypted_password,
             'email': register_auth_scheme.email,
-            'roles': [2],
+            'roles': [2], # роль с id 2 - user
         })
 
         registered_user = await userServ.create_and_get_model_scheme(creating_user_scheme, db)
@@ -136,9 +139,9 @@ class AuthService:
     async def login(cls, login_auth_scheme: LoginAuthScheme, db: AsyncSession) -> TokensScheme:
         logining_user = await userServ.get_by_username(login_auth_scheme.username, db)
         if logining_user is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User does not exist')
+            raise UserDoesNotExistException("User does not exist")
         if not BcryptUtil.verify_password(login_auth_scheme.password, logining_user.password):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Incorrect password or username')
+            raise InvalidCredentialsException("Incorrect password or username")
         model_user_scheme = ModelUserScheme.model_validate(logining_user, from_attributes=True)
         payload = model_user_scheme.model_dump()
         access_token, refresh_token = JwtUtil.create_tokens(payload)
@@ -171,11 +174,11 @@ class AuthService:
     @classmethod
     async def get_user_by_token(cls, token: str, db: AsyncSession) -> User:
         if token not in cls.access_tokens:
-            raise HTTPException(status_code=403, detail='Token is invalid')
+            raise InvalidTokenException("Access token is invalid")
         try:
             payload = JwtUtil.decode_token(token)
         except Exception as e:
-            raise HTTPException(status_code=403, detail=f"Error: {e}")
+            raise InvalidTokenException(f"Error while decoding refresh token: {e}")
 
         user_id = payload.get('id')
         got_user = await userServ.get_by_id(user_id, db)
@@ -184,9 +187,9 @@ class AuthService:
     @classmethod
     async def update_access_token(cls, tokens: TokensScheme) -> TokensScheme:
         if tokens.access_token not in cls.access_tokens:
-            raise HTTPException(status_code=403, detail='Access token is invalid')
+            raise InvalidTokenException("Access token is invalid")
         if tokens.refresh_token not in cls.refresh_tokens:
-            raise HTTPException(status_code=403, detail='Refresh token is invalid')
+            raise InvalidTokenException("Refresh token is invalid")
         
         cls.refresh_tokens.remove(tokens.refresh_token)
         cls.access_tokens.remove(tokens.access_token)
@@ -194,7 +197,7 @@ class AuthService:
         try:
             user_data = JwtUtil.decode_token(tokens.refresh_token)
         except Exception as e:
-            raise HTTPException(status_code=403, detail=f"Error: {e}")
+            raise InvalidTokenException(f"Error while decoding refresh token: {e}")
         
         access_token, refresh_token = JwtUtil.create_tokens(user_data)
         cls.access_tokens.add(access_token)

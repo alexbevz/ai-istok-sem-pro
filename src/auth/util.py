@@ -1,6 +1,6 @@
 import bcrypt
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from src.auth.config import JwtConfig
 
@@ -31,8 +31,8 @@ class JwtUtil:
     def generate_token(cls, payload: dict, *, headers: dict | None = None,
                        expiration_minutes: int = JwtConfig.get_expire_minutes()) -> str:
         modified_payload = payload.copy()
-        modified_payload['exp'] = datetime.utcnow() + timedelta(minutes=expiration_minutes)
-        modified_payload['iat'] = datetime.utcnow()
+        modified_payload['exp'] = datetime.now(UTC) + timedelta(minutes=expiration_minutes)
+        modified_payload['iat'] = datetime.now(UTC)
         token = jwt.encode(modified_payload, cls.secret_key, algorithm=cls.algorithm, headers=headers)
         return token
 
