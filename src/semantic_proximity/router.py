@@ -7,11 +7,14 @@ from src.auth.dependency import get_current_user
 from src.auth.model import User
 
 from src.semantic_proximity.service import proximityServ, collectionServ
-from src.semantic_proximity.scheme import (ProximityRequestScheme,
-                                           EditDataCollectionScheme,
+from src.semantic_proximity.scheme import (ProximityItemsScheme,
+                                           UpdateDataCollectionScheme,
                                            TextItemScheme,
-                                           CreateDataCollectionScheme)
+                                           CreateDataCollectionScheme,
+                                           GetProximeItemsScheme,
+                                           SaveProximeItemsScheme)
 
+from src.scheme import PageScheme
 
 from fastapi import File, UploadFile
 
@@ -19,30 +22,30 @@ class SemanticProximityRouter(APIRouter):
 
     def __init__(self):
         super().__init__(prefix='/sps', tags=['Семантическая близость'])
-        self.add_api_route(endpoint=self.find_proximity, path="/find", methods=['GET'])
+        self.add_api_route(endpoint=self.find_proximity, path="/find", methods=['POST'])
 
         self.add_api_route(endpoint=self.create_collection, path="/collections", methods=['POST'])
         self.add_api_route(endpoint=self.get_all_collections, path="/collections", methods=['GET'])
-        self.add_api_route(endpoint=self.get_collection, path="/collections/{collection_id}", methods=['GET'])
-        self.add_api_route(endpoint=self.edit_collection, path="/collections/{collection_id}", methods=['PUT'])
-        self.add_api_route(endpoint=self.delete_collection, path="/collections/{collection_id}", methods=['DELETE'])
+        self.add_api_route(endpoint=self.get_collection_by_id, path="/collections/{collection_id}", methods=['GET'])
+        self.add_api_route(endpoint=self.update_collection_by_id, path="/collections/{collection_id}", methods=['PUT'])
+        self.add_api_route(endpoint=self.delete_collection_by_id, path="/collections/{collection_id}", methods=['DELETE'])
 
         self.add_api_route(endpoint=self.add_collection_item, path="/collections/{collection_id}/items", methods=['POST'])
         self.add_api_route(endpoint=self.add_all_collection_items, path="/collections/{collection_id}/items/batch", methods=['POST'])
         self.add_api_route(endpoint=self.add_items_from_file, path="/collections/{collection_id}/items/file", methods=['POST'])
 
-        self.add_api_route(endpoint=self.get_all_collection_items, path="/collections/{collection_id}/items", methods=['GET'])
+        self.add_api_route(endpoint=self.get_all_collection_items_by_collection_id, path="/collections/{collection_id}/items", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['GET'])
         self.add_api_route(endpoint=self.get_collection_item_by_user_content_id, path='/collections/{collection_id}/items/content/{user_content_id}', methods=['GET'])
 
-        self.add_api_route(endpoint=self.edit_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['PUT'])
-        self.add_api_route(endpoint=self.edit_collection_item_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}", methods=['PUT'])
+        self.add_api_route(endpoint=self.update_collection_item_by_id, path="/collections/{collection_id}/items/{item_id}", methods=['PUT'])
+        self.add_api_route(endpoint=self.update_collection_item_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}", methods=['PUT'])
 
         self.add_api_route(endpoint=self.delete_collection_item, path="/collections/{collection_id}/items/{item_id}", methods=['DELETE'])
 
-        self.add_api_route(endpoint=self.find_proxime_items, path="/collections/{collection_id}/find", methods=['GET'])
-        self.add_api_route(endpoint=self.find_proxime_items_by_id, path="/collections/{collection_id}/items/{item_id}/find", methods=['GET'])
-        self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['GET'])
+        self.add_api_route(endpoint=self.find_proxime_items, path="/collections/{collection_id}/find", methods=['POST'], )
+        self.add_api_route(endpoint=self.find_proxime_items_by_id, path="/collections/{collection_id}/items/{item_id}/find", methods=['POST'])
+        self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['POST'])
 
 
     @classmethod
@@ -58,8 +61,6 @@ class SemanticProximityRouter(APIRouter):
             collection_id (int): id коллекции
             file (UploadFile): Файл для добавления в коллекцию
             separator (str, optional): Разделитель для csv-файлов Defaults to ','.
-            user (User, optional): Пользователь к добавляющий колекцию. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             list[ModelCollectionItemScheme]: Список добавленных элементов коллекции
@@ -69,8 +70,8 @@ class SemanticProximityRouter(APIRouter):
 
 
     @classmethod
-    async def find_proximity(cls, proximity_request_scheme: ProximityRequestScheme):
-        """Найти семантическую близость
+    async def find_proximity(cls, proximity_request_scheme: ProximityItemsScheme):
+        """Единоразовый поиск семантической близости (без коллекции)
 
         Args:
             proximity_request_scheme (ProximityRequestScheme): Схема для поиска семантической близости
@@ -90,8 +91,6 @@ class SemanticProximityRouter(APIRouter):
 
         Args:
             create_collection_scheme (CreateDataCollectionScheme): Схема коллекции для создания.
-            user (User, optional): получение текущей пользователь. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             GetDataCollectionScheme: Схема созданной коллекции
@@ -106,9 +105,7 @@ class SemanticProximityRouter(APIRouter):
         """Получение всех коллекций пользователя
 
         Args:
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
-
+            
         Returns:
             list[GetDataCollectionScheme]: Список коллекций пользователя
         """
@@ -116,7 +113,7 @@ class SemanticProximityRouter(APIRouter):
         return collections
 
     @classmethod
-    async def get_collection(cls,
+    async def get_collection_by_id(cls,
                              collection_id: int,
                              user: User = Depends(get_current_user),
                              db: AsyncSession = Depends(get_session_db)):
@@ -124,8 +121,6 @@ class SemanticProximityRouter(APIRouter):
 
         Args:
             collection_id (int): id коллекции
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             GetDataCollectionScheme: Схема коллекции
@@ -134,27 +129,25 @@ class SemanticProximityRouter(APIRouter):
         return collection
 
     @classmethod
-    async def edit_collection(cls,
+    async def update_collection_by_id(cls,
                               collection_id: int,
-                              edit_collection_scheme: EditDataCollectionScheme,
+                              update_collection_scheme: UpdateDataCollectionScheme,
                               user: User = Depends(get_current_user),
                               db: AsyncSession = Depends(get_session_db)):
         """Изменение коллекции
 
         Args:
             collection_id (int): ID коллекции
-            edit_collection_scheme (EditDataCollectionScheme): Схема для изменения коллекции
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
+            update_collection_scheme (UpdateDataCollectionScheme): Схема для изменения коллекции
 
         Returns:
             GetDataCollectionScheme: Измененная коллекция
         """
-        collection = await collectionServ.edit_collection_by_id(collection_id, edit_collection_scheme, user, db)
+        collection = await collectionServ.update_collection_by_id(collection_id, update_collection_scheme, user, db)
         return collection
 
     @classmethod
-    async def delete_collection(cls,
+    async def delete_collection_by_id(cls,
                                 collection_id: int,
                                 user: User = Depends(get_current_user),
                                 db: AsyncSession = Depends(get_session_db)):
@@ -162,8 +155,6 @@ class SemanticProximityRouter(APIRouter):
 
         Args:
             collection_id (int): ID коллекции
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             GetDataCollectionScheme: удаленная коллекция
@@ -183,8 +174,6 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             add_collection_item_scheme (TextItemScheme): Элемент для добавления
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelCollectionItemScheme: добавленный элемент
@@ -203,8 +192,6 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             add_collection_items_scheme (list[TextItemScheme]): Список элементов для добавления
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             list[ModelCollectionItemScheme]: список добавленных элементов
@@ -214,10 +201,9 @@ class SemanticProximityRouter(APIRouter):
 
 
     @classmethod
-    async def get_all_collection_items(cls,
+    async def get_all_collection_items_by_collection_id(cls,
                                        collection_id: int,
-                                       offset = 0,
-                                       limit = 10,
+                                       page: PageScheme = Depends(),
                                        user: User = Depends(get_current_user),
                                        db: AsyncSession = Depends(get_session_db)):
         """Получение всех элементов коллекций
@@ -226,13 +212,11 @@ class SemanticProximityRouter(APIRouter):
             collection_id (int): ID коллекции
             offset (int, optional): С какого индекса. Defaults to 0.
             limit (int, optional): По какой индекс. Defaults to 10.
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             GetAllCollectionElementsScheme: схема элементов
         """
-        collection_items = await collectionServ.get_all_collection_items(collection_id, offset, limit, user, db)
+        collection_items = await collectionServ.get_all_collection_items_by_collection_id(collection_id, page, user, db)
         return collection_items
     
     @classmethod
@@ -246,8 +230,6 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             item_id (int): ID элемента
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelDataCollectionScheme: элемент из коллекции
@@ -266,8 +248,6 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             user_content_id (int): ID контента
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
 
         Returns:
             ModelCollectionItemScheme: элемент из коллекции
@@ -276,10 +256,10 @@ class SemanticProximityRouter(APIRouter):
         return collection_item
     
     @classmethod
-    async def edit_collection_item_by_id(cls,
+    async def update_collection_item_by_id(cls,
                                          collection_id: int,
                                          item_id: int,
-                                         edit_collection_item_scheme: TextItemScheme,
+                                         update_collection_item_scheme: TextItemScheme,
                                          user: User = Depends(get_current_user),
                                          db: AsyncSession = Depends(get_session_db)):
         """Изменение элемента коллекции
@@ -287,21 +267,19 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             item_id (int): ID элемента
-            edit_collection_item_scheme (TextItemScheme): Измененный элемент
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
+            update_collection_item_scheme (TextItemScheme): Измененный элемент
 
         Returns:
             ModelDataCollectionScheme: Измененный элемент
         """
-        collection_item = await collectionServ.edit_collection_item_by_id(collection_id, item_id, edit_collection_item_scheme, user, db)
+        collection_item = await collectionServ.update_collection_item_by_id(collection_id, item_id, update_collection_item_scheme, user, db)
         return collection_item
 
     @classmethod
-    async def edit_collection_item_by_user_content_id(cls,
+    async def update_collection_item_by_user_content_id(cls,
                                          collection_id: int,
                                          user_content_id: int,
-                                         edit_collection_item_scheme: TextItemScheme,
+                                         update_collection_item_scheme: TextItemScheme,
                                          user: User = Depends(get_current_user),
                                          db: AsyncSession = Depends(get_session_db)):
         """Изменение элемента коллекции
@@ -309,14 +287,12 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             user_content_id (int): ID пользовательского контента
-            edit_collection_item_scheme (TextItemScheme): Измененный элемент
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
-
+            update_collection_item_scheme (TextItemScheme): Измененный элемент
+            
         Returns:
             ModelDataCollectionScheme: Изменённый элемент
         """
-        collection_item = await collectionServ.edit_collection_item_by_user_content_id(collection_id, user_content_id, edit_collection_item_scheme, user, db)
+        collection_item = await collectionServ.update_collection_item_by_user_content_id(collection_id, user_content_id, update_collection_item_scheme, user, db)
         return collection_item
     
     @classmethod
@@ -330,9 +306,7 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             item_id (int): ID элемента
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
-
+            
         Returns:
             ModelCollectionItemScheme: Удаленный элемент
         """
@@ -343,9 +317,7 @@ class SemanticProximityRouter(APIRouter):
     async def find_proxime_items(cls,
                                  collection_id: int,
                                  find_proxime_items_scheme: TextItemScheme,
-                                 save: bool=False,
-                                 count: int=-1,
-                                 limit_accuracy: float=0.1,
+                                 save_proxime_items_scheme: SaveProximeItemsScheme = Depends(),
                                  user: User = Depends(get_current_user),
                                  db: AsyncSession = Depends(get_session_db)):
         """Поиск семантически близких элементов
@@ -354,23 +326,20 @@ class SemanticProximityRouter(APIRouter):
             collection_id (int): ID коллекции
             find_proxime_items_scheme (TextItemScheme): Схема для поиска
             save (bool, optional): Добавлять в коллекцию. Defaults to False.
-            count (int, optional): Количество выводимых элементов. Defaults to -1.
-            limit_accuracy (float, optional): Предел точности. Defaults to 0.1.
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
-
+            count (int, optional): Количество выводимых элементов. Defaults to 5.
+            limit_accuracy (float, optional): Предел точности. Defaults to 0.5.
+            
         Returns:
             ProximityResponseScheme: Схема с результатом поиска
         """
-        collection_items = await collectionServ.find_proxime_items(collection_id, find_proxime_items_scheme, save, count, limit_accuracy, user, db)
+        collection_items = await collectionServ.find_proxime_items(collection_id, find_proxime_items_scheme, save_proxime_items_scheme, user, db)
         return collection_items
 
     @classmethod
     async def find_proxime_items_by_id(cls,
                                        collection_id: int,
                                        item_id: int,
-                                       count: int=-1,
-                                       limit_accuracy: float=0.1,
+                                       get_proxime_items_scheme: GetProximeItemsScheme = Depends(),
                                        user: User = Depends(get_current_user),
                                        db: AsyncSession = Depends(get_session_db)):
         """Поиск семантически близких элементов по ID
@@ -378,23 +347,20 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             item_id (int): ID элемента
-            count (int, optional): Количество. Defaults to -1.
-            limit_accuracy (float, optional): Предел точности. Defaults to 0.1.
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
+            count (int, optional): Количество. Defaults to 5.
+            limit_accuracy (float, optional): Предел точности. Defaults to 0.5.
 
         Returns:
             ProximityResponseScheme: Схема с результатом поиска
         """
-        collection_items = await collectionServ.find_proxime_items_by_id(collection_id, item_id, count, limit_accuracy, user, db)
+        collection_items = await collectionServ.find_proxime_items_by_id(collection_id, item_id, get_proxime_items_scheme, user, db)
         return collection_items
 
     @classmethod
     async def find_proxime_items_by_user_content_id(cls,
                                                     collection_id: int,
                                                     user_content_id: int,
-                                                    count: int=-1,
-                                                    limit_accuracy: float=0.1,
+                                                    get_proxime_items_scheme: GetProximeItemsScheme = Depends(),
                                                     user: User = Depends(get_current_user),
                                                     db: AsyncSession = Depends(get_session_db)):
         """Поиск семантически близких элементов по ID контента
@@ -402,15 +368,13 @@ class SemanticProximityRouter(APIRouter):
         Args:
             collection_id (int): ID коллекции
             user_content_id (int): ID контента
-            count (int, optional): Количество. Defaults to -1.
-            limit_accuracy (float, optional): Предел точности. Defaults to 0.1.
-            user (User, optional): Получение текущего пользователя. Defaults to Depends(get_current_user).
-            db (AsyncSession, optional): Получение сессии. Defaults to Depends(get_session_db).
+            count (int, optional): Количество. Defaults to 5.
+            limit_accuracy (float, optional): Предел точности. Defaults to 0.5.
 
         Returns:
             ProximityResponseScheme: Схема с результатом поиска
         """
-        collection_items = await collectionServ.find_proxime_items_by_user_content_id(collection_id, user_content_id, count, limit_accuracy, user, db)
+        collection_items = await collectionServ.find_proxime_items_by_user_content_id(collection_id, user_content_id, get_proxime_items_scheme, user, db)
         return collection_items
 
 spsRouter = SemanticProximityRouter()

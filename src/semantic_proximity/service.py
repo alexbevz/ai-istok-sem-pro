@@ -1,9 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from qdrant_client.models import PointStruct
-from fastapi import HTTPException
-from starlette import status
 
-from src.auth.scheme import ModelUserScheme
 from src.auth.model import User
 from src.semantic_proximity.util import (EmbeddingUtil,
                                          SimilarityUtil,
@@ -19,53 +16,47 @@ from src.semantic_proximity.scheme import (BaseDataCollectionScheme,
                                            BaseCollectionItemScheme,
                                            ModelDataCollectionScheme,
                                            ModelCollectionItemScheme,
-                                           ProximityRequestScheme,
-                                           ProximityResponseScheme,
+                                           ProximityItemsScheme,
+                                           ProximityResultScheme,
                                            TextProximityItemScheme,
                                            CreateDataCollectionScheme,
                                            GetDataCollectionScheme,
-                                           EditDataCollectionScheme,
+                                           UpdateDataCollectionScheme,
                                            TextItemScheme,
                                            GetAllCollectionElementsScheme,
-                                           NumberOfCreatedItemsScheme)
+                                           NumberOfCreatedItemsScheme,
+                                           GetProximeItemsScheme,
+                                           SaveProximeItemsScheme)
 
 from src.semantic_proximity.exception import (CollectionAlreadyExistsException,
-                                              CollectionNotExistsException,
                                               WrongCollectionException,
                                               BatchSizeException,
-                                              InsuffucientAccessRightsException,
                                               QdrantCollectionException)
+
+from src.scheme import PageScheme
 
 from src.semantic_proximity.vector_repository import vectorRep
 from src.semantic_proximity.config import QdrantConfig, FileConfig
 
-embed = EmbeddingUtil.calculate_embedding
-
-distance_metric = QdrantConfig().get_distance_metric()
-distance = SimilarityUtil.choose_distance_metric(distance_metric)
-
-qdrant_name = CollectionUtil.convert_name_to_qdrant
-
-get_handler = FileUtil.get_file_handler
-
-batch_size = FileConfig().get_batch_size()
-
 class ProximityService:
 
     @classmethod
-    async def find_proximity(cls, request: ProximityRequestScheme) -> ProximityResponseScheme:
-        embedding = embed(request.content)
-        compared_items = [item.content for item in request.compared_items]
-        target_embeddings = embed(compared_items)
-        similarities = distance(embedding, target_embeddings)
-        similarity_items = [
-            TextProximityItemScheme(
-                content=content,
-                semantic_proximity=similarity
-            ) for content, similarity in zip(compared_items, similarities)
-        ]
-        return ProximityResponseScheme(
-            content=request.content,
+    async def find_proximity(cls, proximity_items: ProximityItemsScheme) -> ProximityResultScheme:
+        embedding = EmbeddingUtil.calculate_embedding(proximity_items.content)
+        compared_items = [item.content for item in proximity_items.compared_items]
+        target_embeddings = EmbeddingUtil.calculate_embedding(compared_items)
+        distance_metric = SimilarityUtil.choose_distance_metric(QdrantConfig.get_distance_metric())
+        similarities = distance_metric(embedding, target_embeddings)
+        similarity_items = []
+        for content, similarity in zip(compared_items, similarities):
+            similarity_items.append(
+                TextProximityItemScheme(
+                    content=content,
+                    semantic_proximity=similarity
+                )
+            )
+        return ProximityResultScheme(
+            content=proximity_items.content,
             compared_items_result=similarity_items
         )
 
@@ -79,15 +70,9 @@ class CollectionService:
                                 user: User,
                                 db: AsyncSession) -> GetDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        qdrant_table_name = qdrant_name(user_id, create_collection_scheme.name)
-        collection = await collectionRep.get_by_unique_field(field=DataCollection.qdrant_table_name,
-                                                                  value=qdrant_table_name,
-                                                                  session=db)
-        if collection:
-            raise CollectionAlreadyExistsException(f"Collection with name {create_collection_scheme.name} already exists")
+        qdrant_table_name = CollectionUtil.generate_qdrant_name()
         data_collection_scheme = BaseDataCollectionScheme(
-            user_id=user_id,
+            user_id=user.id,
             name=create_collection_scheme.name,
             qdrant_table_name=qdrant_table_name)
         data_collection_model = DataCollection(**data_collection_scheme.model_dump())
@@ -105,11 +90,14 @@ class CollectionService:
                                    user: User,
                                    db: AsyncSession) -> list[GetDataCollectionScheme]:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
         data_collections = await collectionRep.get_all_by_field(field=DataCollection.user_id,
-                                                                     value=user_id,
+                                                                     value=user.id,
                                                                      session=db)
-        return [GetDataCollectionScheme.model_validate(item, from_attributes=True) for item in data_collections]
+        data_collection_schemes = []
+        for item in data_collections:
+            data_collection_schemes.append(GetDataCollectionScheme.model_validate(item, from_attributes=True))
+
+        return data_collection_schemes
     
     @classmethod
     async def get_collection_by_id(cls,
@@ -117,44 +105,25 @@ class CollectionService:
                                    user: User,
                                    db: AsyncSession) -> GetDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                              session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
         
         return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
     @classmethod
-    async def edit_collection_by_id(cls,
+    async def update_collection_by_id(cls,
                                     collection_id: int,
-                                    edit_collection_scheme: EditDataCollectionScheme,
+                                    update_collection_scheme: UpdateDataCollectionScheme,
                                     user: User,
                                     db: AsyncSession) -> GetDataCollectionScheme:
-        # TODO: найти реализацию переименования коллекций в qdrant
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                            session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
 
-        old_name = qdrant_name(user_id=user_id, name=data_collection_scheme.name)
-        new_name = qdrant_name(user_id=user_id, name=edit_collection_scheme.name)
-        vectorRep.create_from_collection(collection_name=new_name,
-                                         base_collection=old_name)
-        vectorRep.delete_collection(old_name)
-        data_collection.name = edit_collection_scheme.name
-        data_collection.qdrant_table_name = new_name
+        data_collection.name = update_collection_scheme.name
         data_collection = await collectionRep.update(model=data_collection, session=db)
-        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
+
+        data_collection_scheme = GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
+        return data_collection_scheme
 
     @classmethod
     async def delete_collection_by_id(cls,
@@ -162,21 +131,17 @@ class CollectionService:
                                       user: User,
                                       db: AsyncSession) -> GetDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                              session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
+        
         vectorRep.delete_collection(data_collection.qdrant_table_name)
         data_collection = await collectionRep.delete_by_id(model_id=collection_id, session=db)
         await itemRep.delete_all_by_field(field=CollectionItem.data_collection_id,
-                                          value=data_collection_scheme.id,
+                                          value=data_collection.id,
                                           session=db)
-        return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
+        
+        data_collection_scheme = GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
+        return data_collection_scheme
     
     @classmethod
     async def add_collection_item(cls,
@@ -185,37 +150,9 @@ class CollectionService:
                                   user: User,
                                   db: AsyncSession) -> ModelCollectionItemScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                              session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
-        collection_item_scheme = BaseCollectionItemScheme(
-            data_collection_id=collection_id,
-            content=add_collection_item_scheme.content,
-            user_content_id=add_collection_item_scheme.user_content_id
-        )
-        collection_item_model = CollectionItem(**collection_item_scheme.model_dump())
-        collection_item = await itemRep.create(model=collection_item_model,
-                                                    session=db)
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
-                                                                                from_attributes=True)
-        payload = {
-            "content": collection_item_scheme.content
-        }
-        vector = embed(add_collection_item_scheme.content)
-        point = PointStruct(
-            id=collection_item_scheme.id,
-            payload=payload,
-            vector=vector
-        )
-        vectorRep.add_point(collection_name=data_collection.qdrant_table_name,
-                            point=point)
-        return collection_item_scheme
+        items_list = [add_collection_item_scheme,]
+        added_items = await cls.add_collection_items(collection_id, items_list, user, db)
+        return added_items[0]
 
     @classmethod
     async def add_collection_items(cls,
@@ -224,17 +161,14 @@ class CollectionService:
                                    user: User,
                                    db: AsyncSession) -> list[ModelCollectionItemScheme]:
 
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                              session=db)
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
+
+        batch_size = FileConfig.get_batch_size()
+
         if len(items_list) > batch_size:
             raise BatchSizeException(f"Batch is too big. Max {batch_size} items")
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                          from_attributes=True)
-        if data_collection_scheme.user_id!= user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        
         collection_item_models = []
         for item in items_list:
             collection_item_scheme = BaseCollectionItemScheme(
@@ -243,20 +177,26 @@ class CollectionService:
                 user_content_id=item.user_content_id
             )
             collection_item_models.append(CollectionItem(**collection_item_scheme.model_dump()))
+        
         collection_item_models = await itemRep.create_all(models=collection_item_models,
                                                             session=db)
-        collection_items = [ModelCollectionItemScheme.model_validate(collection_item,
-                                                                              from_attributes=True) for collection_item in collection_item_models]
+        collection_items = []
+        for collection_item in collection_item_models:
+            collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
+            collection_items.append(collection_item_scheme)
         
-        vectors = embed([item.content for item in collection_items])
-        payloads = [{
-            "content": item.content
-        } for item in collection_items]
-        points = [PointStruct(
+        points = []
+        for collection_item in collection_items:
+            vector = EmbeddingUtil.calculate_embedding(collection_item.content)
+            payload = {
+                "content": collection_item.content
+            }
+            point = PointStruct(
                 id=collection_item.id,
                 payload=payload,
                 vector=vector
-            ) for collection_item, payload, vector in zip(collection_items, payloads, vectors)]
+            )
+            points.append(point)
         vectorRep.add_points(collection_name=data_collection.qdrant_table_name,
                              points=points)
         return collection_items
@@ -269,53 +209,50 @@ class CollectionService:
                                              separator: str,
                                              user: User,
                                              db: AsyncSession) -> NumberOfCreatedItemsScheme:
-        handler = get_handler(file.filename, separator=separator)
+        file_handler = FileUtil.get_file_handler(file.filename, separator=separator)
         file_object = file.file
-        items = handler(file_object)
-        batches = [items[i:i+batch_size] for i in range(0, len(items), batch_size)]
-        response_items = []
+        items = file_handler(file_object)
+        batch_size = FileConfig.get_batch_size()
+        batches = FileUtil.get_batches(items=items, batch_size=batch_size)
+        all_items_list = []
         for batch in batches:
-            item_list = [
-                TextItemScheme(
+            batch_items_list = []
+            for item in batch:
+                collection_item_scheme = TextItemScheme(
                     content=item['content'],
                     user_content_id=item['user_content_id']
-                ) for item in batch
-            ]
+                )
+                batch_items_list.append(collection_item_scheme)
             collection_items = await cls.add_collection_items(collection_id=collection_id,
-                                              items_list=item_list,
+                                              items_list=batch_items_list,
                                               user=user,
                                               db=db)
-            response_items.extend(collection_items)
+            all_items_list.extend(collection_items)
+        
         number_of_created_items = NumberOfCreatedItemsScheme(
-            total=len(response_items)
+            total=len(all_items_list)
         )
         return number_of_created_items
 
     @classmethod
-    async def get_all_collection_items(cls,
+    async def get_all_collection_items_by_collection_id(cls,
                                        collection_id: int,
-                                       offset: int,
-                                       limit: int,
+                                       page: PageScheme,
                                        user: User,
                                        db: AsyncSession) -> GetAllCollectionElementsScheme:
 
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                            session=db) 
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        offset = page.offset
+        limit = page.limit
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
         
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.data_collection_id,
-                                                               value=data_collection_scheme.id,
+                                                               value=data_collection.id,
                                                                session=db)
-        offset,limit = int(offset),int(limit)
-        collection_items_list = [
-            ModelCollectionItemScheme.model_validate(item, from_attributes=True) for item in collection_items
-            ][offset:offset+limit]
+        collection_items = collection_items[offset:offset+limit]
+        collection_items_list = []
+        for item in collection_items:
+            collection_items_list.append(ModelCollectionItemScheme.model_validate(item, from_attributes=True))
         items_num = len(collection_items_list)
         collection_elements = GetAllCollectionElementsScheme(
             result=collection_items_list,
@@ -332,21 +269,12 @@ class CollectionService:
                                   user: User,
                                   db: AsyncSession)->ModelCollectionItemScheme:
         # TODO: дописать метод позже
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                              session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
-        collection_item = await itemRep.get_by_id(model_id=item_id,
-                                                session=db)
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
+        collection_item = await CollectionUtil.get_collection_item(collection_id, item_id, db)
+
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
-                                                                            from_attributes=True)
-        if collection_item_scheme.data_collection_id != collection_id:
-            raise WrongCollectionException(f"Item with id {item_id} doesn't belong to collection {collection_id}")
+                                                                          from_attributes=True)
         return collection_item_scheme
 
     @classmethod
@@ -356,15 +284,8 @@ class CollectionService:
                                   user: User,
                                   db: AsyncSession) -> ModelCollectionItemScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                              session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
                                                             value=user_content_id,
                                                             session=db)
@@ -376,113 +297,68 @@ class CollectionService:
         return collection_item_scheme
 
     @classmethod
-    async def edit_collection_item_by_id(cls,
+    async def update_collection_item_by_id(cls,
                                          collection_id: int,
                                          item_id: int,
-                                         edit_collection_item_scheme: TextItemScheme,
+                                         update_collection_item_scheme: TextItemScheme,
                                          user: User,
                                          db: AsyncSession) -> ModelDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                            session=db) 
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
         
-        collection_item = await itemRep.get_by_id(model_id=item_id,
-                                                        session=db)
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-        if collection_item_scheme.data_collection_id != collection_id:
-            raise WrongCollectionException(f"Item with id {item_id} doesn't belong to collection {collection_id}")
-        collection_item.content = edit_collection_item_scheme.content
-        collection_item.user_content_id = edit_collection_item_scheme.user_content_id
+        collection_item = await CollectionUtil.get_collection_item(collection_id, item_id, db)
+
+        collection_item.content = update_collection_item_scheme.content
+        collection_item.user_content_id = update_collection_item_scheme.user_content_id
         collection_item = await itemRep.update(model=collection_item,
                                                     session=db)
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-        collection_name = data_collection_scheme.qdrant_table_name
-        vector = embed(edit_collection_item_scheme.content)
+        collection_name = data_collection.qdrant_table_name
+        vector = EmbeddingUtil.calculate_embedding(update_collection_item_scheme.content)
         payload = {
-            "content": edit_collection_item_scheme.content
+            "content": update_collection_item_scheme.content
         }
         point = PointStruct(
-            id=collection_item_scheme.id,
+            id=collection_item.id,
             payload=payload,
             vector=vector
         )
         vectorRep.add_point(collection_name=collection_name, point=point)
+        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
         return collection_item_scheme
 
     @classmethod
-    async def edit_collection_item_by_user_content_id(cls,
+    async def update_collection_item_by_user_content_id(cls,
                                          collection_id: int,
                                          user_content_id: int,
-                                         edit_collection_item_scheme: TextItemScheme,
+                                         update_collection_item_scheme: TextItemScheme,
                                          user: User,
                                          db: AsyncSession) -> ModelDataCollectionScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                            session=db) 
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                                    from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
         
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.user_content_id,
                                                          value=user_content_id,
                                                         session=db)
         collection_item = collection_items[0]
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-        if collection_item_scheme.data_collection_id != collection_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Item with id {user_content_id} doesn't belong to collection {collection_id}")
-        collection_item.content = edit_collection_item_scheme.content
-        collection_item.user_content_id = edit_collection_item_scheme.user_content_id
-        collection_item = await itemRep.update(model=collection_item,
-                                                    session=db)
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-        collection_name = data_collection_scheme.qdrant_table_name
-        vector = embed(edit_collection_item_scheme.content)
-        payload = {
-            "content": edit_collection_item_scheme.content
-        }
-        point = PointStruct(
-            id=collection_item_scheme.id,
-            payload=payload,
-            vector=vector
-        )
-        vectorRep.add_point(collection_name=collection_name, point=point)
-        return collection_item_scheme
+        item_id = collection_item.id
+        return await cls.update_collection_item_by_id(collection_id, item_id, update_collection_item_scheme, user, db)
 
     @classmethod
     async def delete_collection_item(cls,
-                                           collection_id: int,
-                                           item_id: int,
-                                           user: User,
-                                           db: AsyncSession) -> ModelCollectionItemScheme:
+                                     collection_id: int,
+                                     item_id: int,
+                                     user: User,
+                                     db: AsyncSession) -> ModelCollectionItemScheme:
         
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                            session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                          from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
-        collection_item = await itemRep.get_by_id(model_id=item_id,
-                                                        session=db)
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-        if collection_item_scheme.data_collection_id != collection_id:
-            raise WrongCollectionException(f"Item with id {item_id} doesn't belong to collection {collection_id}")
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
+        collection_item = await CollectionUtil.get_collection_item(collection_id, item_id, db)
+        
         collection_item = await itemRep.delete_by_id(model_id=item_id,
                                                     session=db)
-        collection_name = data_collection_scheme.qdrant_table_name
+        collection_name = data_collection.qdrant_table_name
         vectorRep.delete_point_by_id(collection_name=collection_name, point_id=item_id)
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
         return collection_item_scheme
@@ -491,69 +367,46 @@ class CollectionService:
     async def find_proxime_items(cls,
                                  collection_id: int,
                                  find_proxime_items_scheme: TextItemScheme,
-                                 save: bool,
-                                 count: int,
-                                 limit_accuracy: float,
+                                 save_proxime_items_scheme: SaveProximeItemsScheme,
                                  user: User,
-                                 db: AsyncSession)->ProximityResponseScheme:
+                                 db: AsyncSession) -> ProximityResultScheme:
 
-        count, limit_accuracy = int(count), float(limit_accuracy)
-        if type(save) == str:
-            save = save == 'true'
-        user_id = ModelUserScheme.model_validate(user, from_attributes=True).id
-        data_collection = await collectionRep.get_by_id(model_id=collection_id,
-                                                        session=db)
-        if not data_collection:
-            raise CollectionNotExistsException(f"Collection with id {collection_id} doesn't exist")
-        data_collection_scheme = ModelDataCollectionScheme.model_validate(data_collection,
-                                                                          from_attributes=True)
-        if data_collection_scheme.user_id != user_id:
-            raise InsuffucientAccessRightsException(f"User {user_id} is not owner of collection {collection_id}")
-        vector = embed(find_proxime_items_scheme.content)
-        payload = {
-            "content": find_proxime_items_scheme.content
-        }
-        nearest = vectorRep.find_nearest_by_vector(collection_name=data_collection_scheme.qdrant_table_name,
+        count = save_proxime_items_scheme.count
+        limit_accuracy = save_proxime_items_scheme.limit_accuracy
+        save = save_proxime_items_scheme.save
+        data_collection = await CollectionUtil.get_collection(collection_id, db)
+        await CollectionUtil.check_collection_owner(data_collection, user)
+
+        vector = EmbeddingUtil.calculate_embedding(find_proxime_items_scheme.content)
+        nearest = vectorRep.find_nearest_by_vector(collection_name=data_collection.qdrant_table_name,
                                                         limit=count+1,
                                                         vector=vector)
-        filtered_result = [
-            TextProximityItemScheme(
-                content=item.payload["content"],
-                semantic_proximity=item.score
-            ) for item in nearest if item.score >= limit_accuracy
-        ][:count]
+        filtered_result = []
+        for item in nearest:
+            if item.score >= limit_accuracy:
+                proximity_item = TextProximityItemScheme(
+                    content=item.payload["content"],
+                    semantic_proximity=item.score
+                )
+            filtered_result.append(proximity_item)
+        filtered_result = filtered_result[:count]
         if save:
-            collection_item_scheme = BaseCollectionItemScheme(
-                content=find_proxime_items_scheme.content,
-                user_content_id=find_proxime_items_scheme.user_content_id,
-                data_collection_id=collection_id,
-            )
-            collection_item_model = CollectionItem(**collection_item_scheme.model_dump())
-            collection_item = await itemRep.create(model=collection_item_model,
-                                                        session=db)
-            collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-            collection_name = data_collection_scheme.qdrant_table_name
-            point = PointStruct(
-                id=collection_item_scheme.id,
-                payload=payload,
-                vector=vector
-            )
-            vectorRep.add_point(collection_name=collection_name, point=point)
-        
-        return ProximityResponseScheme(
+            await cls.add_collection_item(collection_id, find_proxime_items_scheme, user, db)
+
+        proximity_result_scheme = ProximityResultScheme(
             content=find_proxime_items_scheme.content,
             user_content_id=find_proxime_items_scheme.user_content_id,
             compared_items_result=filtered_result
         )
+        return proximity_result_scheme
 
     @classmethod
     async def find_proxime_items_by_id(cls,
                                        collection_id: int,
                                        item_id: int,
-                                       count: int,
-                                       limit_accuracy: float,
+                                       get_proxime_items_scheme: GetProximeItemsScheme,
                                        user: User,
-                                       db: AsyncSession)->ProximityResponseScheme:
+                                       db: AsyncSession) -> ProximityResultScheme:
         
         collection_item = await cls.get_collection_item_by_id(
             collection_id=collection_id,
@@ -561,27 +414,31 @@ class CollectionService:
             user=user,
             db=db
         )
-        return await cls.find_proxime_items(
+        save_proxime_items_scheme = SaveProximeItemsScheme(
+            count=get_proxime_items_scheme.count,
+            limit_accuracy=get_proxime_items_scheme.limit_accuracy,
+            save=False
+        )
+        collection_item_scheme = TextItemScheme(
+            content=collection_item.content,
+            user_content_id=collection_item.user_content_id
+        )
+        proximity_result_scheme = await cls.find_proxime_items(
             collection_id=collection_id,
-            find_proxime_items_scheme=TextItemScheme(
-                content=collection_item.content,
-                user_content_id=collection_item.user_content_id
-            ),
-            save=False,
-            count=count,
-            limit_accuracy=limit_accuracy,
+            find_proxime_items_scheme=collection_item_scheme,
+            save_proxime_items_scheme=save_proxime_items_scheme,
             user=user,
             db=db
         )
+        return proximity_result_scheme
     
     @classmethod
     async def find_proxime_items_by_user_content_id(cls,
                                                     collection_id: int,
                                                     user_content_id: int,
-                                                    count: int,
-                                                    limit_accuracy: float,
+                                                    get_proxime_items_scheme: GetProximeItemsScheme,
                                                     user: User,
-                                                    db: AsyncSession)->ProximityResponseScheme:
+                                                    db: AsyncSession) -> ProximityResultScheme:
         
         collection_item = await cls.get_collection_item_by_user_content_id(
             collection_id=collection_id,
@@ -589,20 +446,23 @@ class CollectionService:
             user=user,
             db=db
         )
-        collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-
-        return await cls.find_proxime_items(
+        save_proxime_items_scheme = SaveProximeItemsScheme(
+            count=get_proxime_items_scheme.count,
+            limit_accuracy=get_proxime_items_scheme.limit_accuracy,
+            save=False
+        )
+        collection_item_scheme = TextItemScheme(
+            content=collection_item.content,
+            user_content_id=collection_item.user_content_id
+        )
+        proximity_result_scheme = await cls.find_proxime_items(
             collection_id=collection_id,
-            find_proxime_items_scheme=TextItemScheme(
-                content=collection_item_scheme.content,
-                user_content_id=collection_item_scheme.user_content_id
-            ),
-            save=False,
-            count=count,
-            limit_accuracy=limit_accuracy,
+            find_proxime_items_scheme=collection_item_scheme,
+            save_proxime_items_scheme=save_proxime_items_scheme,
             user=user,
             db=db
         )
+        return proximity_result_scheme
         
 collectionServ = CollectionService()
 

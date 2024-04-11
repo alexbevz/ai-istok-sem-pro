@@ -15,7 +15,7 @@ class ModelDataCollectionScheme(BaseDataCollectionScheme):
 
 class BaseCollectionItemScheme(BaseScheme):
     data_collection_id: int
-    """Какокой коллекции прингадлежит элемент"""
+    """Какой коллекции принадлежит элемент"""
     content: str
     """Содержимое элемента"""
     user_content_id: Optional[str] = None
@@ -23,7 +23,7 @@ class BaseCollectionItemScheme(BaseScheme):
 
 class ModelCollectionItemScheme(BaseCollectionItemScheme):
     id: int
-    """Id полученный postgre"""
+    """ID Элемента коллекции"""
 
 class TextItemScheme(BaseScheme):
     content: str
@@ -35,20 +35,27 @@ class TextProximityItemScheme(TextItemScheme):
     semantic_proximity: float
     """Точность сравнения"""
 
-class ProximityRequestScheme(BaseScheme):
+class ProximityItemsScheme(BaseScheme):
     content: str
     user_content_id: Optional[str] = None
     compared_items: list[TextItemScheme]
 
-class ProximityResponseScheme(BaseScheme):
+class ProximityResultScheme(BaseScheme):
     content: str
     user_content_id: Optional[str] = None
     compared_items_result: list[TextProximityItemScheme]
 
+class GetProximeItemsScheme(BaseScheme):
+    count: int = 5
+    limit_accuracy: float = 0.5
+
+class SaveProximeItemsScheme(GetProximeItemsScheme):
+    save: bool = False
+
 class CreateDataCollectionScheme(BaseScheme):
     name: str
 
-class EditDataCollectionScheme(CreateDataCollectionScheme):
+class UpdateDataCollectionScheme(CreateDataCollectionScheme):
     pass
 
 class GetDataCollectionScheme(BaseScheme):
