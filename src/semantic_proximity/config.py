@@ -29,7 +29,7 @@ class QdrantConfig:
 
 
 class EmbeddingConfig:
-    _embedding_model: str = '/model/LaBSE'#'sentence-transformers/LaBSE'
+    _embedding_model: str = os.getenv('EMBEDDING_MODEL', '/model/LaBSE') #'sentence-transformers/LaBSE'
 
     @classmethod
     def get_embedding_model(cls) -> str:

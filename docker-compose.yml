@@ -33,7 +33,7 @@ services:
       NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
       no_proxy: localhost,service_db_qdrant,service_db_postgres,api
     volumes:
-      - ./LaBSE:/model/LaBSE
+      - ./LaBSE:${EMBEDDING_MODEL}
     env_file:
       - .env
     depends_on:
