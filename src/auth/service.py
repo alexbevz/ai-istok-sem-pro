@@ -25,7 +25,7 @@ class RoleService:
     @classmethod
     async def get_model_scheme_all(cls, db: AsyncSession) -> list[ModelRoleScheme]:
         got_roles = await cls.get_all(db)
-        model_role_schemes = [ModelRoleScheme.model_validate(item, from_attributes=True) for item in got_roles]
+        model_role_schemes = ModelRoleScheme.get_schemes_from_models(models=got_roles)
         return model_role_schemes
 
     @classmethod
@@ -77,7 +77,8 @@ class UserService:
     @classmethod
     async def get_model_scheme_all(cls, page_schema: PageScheme, db: AsyncSession) -> list[ModelUserScheme]:
         got_users = await cls.get_all(page_schema, db)
-        return [ModelUserScheme.model_validate(item, from_attributes=True) for item in got_users]
+        schemes = ModelUserScheme.get_schemes_from_models(models=got_users)
+        return schemes
 
     @classmethod
     async def get_by_id(cls, user_id: int, db: AsyncSession) -> User:

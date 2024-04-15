@@ -41,7 +41,10 @@ from src.semantic_proximity.config import QdrantConfig, FileConfig
 class ProximityService:
 
     @classmethod
-    async def find_proximity(cls, proximity_items: ProximityItemsScheme) -> ProximityResultScheme:
+    async def find_proximity(
+        cls,
+        proximity_items: ProximityItemsScheme) -> ProximityResultScheme:
+        
         embedding = EmbeddingUtil.calculate_embedding(proximity_items.content)
         compared_items = [item.content for item in proximity_items.compared_items]
         target_embeddings = EmbeddingUtil.calculate_embedding(compared_items)
@@ -66,10 +69,11 @@ proximityServ = ProximityService()
 class CollectionService:
 
     @classmethod
-    async def create_collection(cls,
-                                create_collection_scheme: CreateDataCollectionScheme,
-                                user: User,
-                                db: AsyncSession) -> GetDataCollectionScheme:
+    async def create_collection(
+            cls,
+            create_collection_scheme: CreateDataCollectionScheme,
+            user: User,
+            db: AsyncSession) -> GetDataCollectionScheme:
 
         qdrant_table_name = CollectionUtil.generate_qdrant_name()
         data_collection_scheme = BaseDataCollectionScheme(
@@ -87,24 +91,24 @@ class CollectionService:
 
 
     @classmethod
-    async def get_user_collections(cls,
-                                   user: User,
-                                   db: AsyncSession) -> list[GetDataCollectionScheme]:
+    async def get_user_collections(
+            cls,
+            user: User,
+            db: AsyncSession) -> list[GetDataCollectionScheme]:
 
         data_collections = await collectionRep.get_all_by_field(field=DataCollection.user_id,
                                                                      value=user.id,
                                                                      session=db)
-        data_collection_schemes = []
-        for item in data_collections:
-            data_collection_schemes.append(GetDataCollectionScheme.model_validate(item, from_attributes=True))
+        data_collection_schemes = GetDataCollectionScheme.get_schemes_from_models(models=data_collections)
 
         return data_collection_schemes
 
     @classmethod
-    async def get_collection_by_id(cls,
-                                   collection_id: int,
-                                   user: User,
-                                   db: AsyncSession) -> GetDataCollectionScheme:
+    async def get_collection_by_id(
+            cls,
+            collection_id: int,
+            user: User,
+            db: AsyncSession) -> GetDataCollectionScheme:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -112,11 +116,13 @@ class CollectionService:
         return GetDataCollectionScheme.model_validate(data_collection, from_attributes=True)
 
     @classmethod
-    async def update_collection_by_id(cls,
-                                      collection_id: int,
-                                      update_collection_scheme: UpdateDataCollectionScheme,
-                                      user: User,
-                                      db: AsyncSession) -> GetDataCollectionScheme:
+    async def update_collection_by_id(
+            cls,
+            collection_id: int,
+            update_collection_scheme: UpdateDataCollectionScheme,
+            user: User,
+            db: AsyncSession) -> GetDataCollectionScheme:
+
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
 
@@ -127,10 +133,11 @@ class CollectionService:
         return data_collection_scheme
 
     @classmethod
-    async def delete_collection_by_id(cls,
-                                      collection_id: int,
-                                      user: User,
-                                      db: AsyncSession) -> GetDataCollectionScheme:
+    async def delete_collection_by_id(
+            cls,
+            collection_id: int,
+            user: User,
+            db: AsyncSession) -> GetDataCollectionScheme:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -145,22 +152,24 @@ class CollectionService:
         return data_collection_scheme
 
     @classmethod
-    async def add_collection_item(cls,
-                                  collection_id: int,
-                                  add_collection_item_scheme: TextItemScheme,
-                                  user: User,
-                                  db: AsyncSession) -> ModelCollectionItemScheme:
+    async def add_collection_item(
+            cls,
+            collection_id: int,
+            add_collection_item_scheme: TextItemScheme,
+            user: User,
+            db: AsyncSession) -> ModelCollectionItemScheme:
 
         items_list = [add_collection_item_scheme,]
         added_items = await cls.add_collection_items(collection_id, items_list, user, db)
         return added_items[0]
 
     @classmethod
-    async def add_collection_items(cls,
-                                   collection_id: int,
-                                   items_list: list[TextItemScheme],
-                                   user: User,
-                                   db: AsyncSession) -> list[ModelCollectionItemScheme]:
+    async def add_collection_items(
+            cls,
+            collection_id: int,
+            items_list: list[TextItemScheme],
+            user: User,
+            db: AsyncSession) -> list[ModelCollectionItemScheme]:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -181,10 +190,8 @@ class CollectionService:
 
         collection_item_models = await itemRep.create_all(models=collection_item_models,
                                                           session=db)
-        collection_items = []
-        for collection_item in collection_item_models:
-            collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item, from_attributes=True)
-            collection_items.append(collection_item_scheme)
+        
+        collection_items = ModelCollectionItemScheme.get_schemes_from_models(models=collection_item_models)
 
         points = []
         for collection_item in collection_items:
@@ -203,12 +210,14 @@ class CollectionService:
         return collection_items
 
     @classmethod
-    async def add_collection_items_from_file(cls,
-                                             collection_id: int,
-                                             file,
-                                             separator: str,
-                                             user: User,
-                                             db: AsyncSession) -> NumberOfCreatedItemsScheme:
+    async def add_collection_items_from_file(
+            cls,
+            collection_id: int,
+            file,
+            separator: str,
+            user: User,
+            db: AsyncSession) -> NumberOfCreatedItemsScheme:
+
         file_handler = FileUtil.get_file_handler(file.filename, separator=separator)
         file_object = file.file
         items = file_handler(file_object)
@@ -235,11 +244,12 @@ class CollectionService:
         return number_of_created_items
 
     @classmethod
-    async def get_all_collection_items_by_collection_id(cls,
-                                                        collection_id: int,
-                                                        page: PageScheme,
-                                                        user: User,
-                                                        db: AsyncSession) -> GetAllCollectionElementsScheme:
+    async def get_all_collection_items_by_collection_id(
+            cls,
+            collection_id: int,
+            page: PageScheme,
+            user: User,
+            db: AsyncSession) -> GetAllCollectionElementsScheme:
 
         offset = page.offset
         limit = page.limit
@@ -249,10 +259,8 @@ class CollectionService:
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.data_collection_id,
                                                           value=data_collection.id,
                                                           session=db)
-        collection_items = collection_items[offset:offset+limit]
-        collection_items_list = []
-        for item in collection_items:
-            collection_items_list.append(ModelCollectionItemScheme.model_validate(item, from_attributes=True))
+        collection_items = collection_items[offset:offset + limit]
+        collection_items_list = ModelCollectionItemScheme.get_schemes_from_models(models=collection_items)
         items_num = len(collection_items_list)
         collection_elements = GetAllCollectionElementsScheme(
             result=collection_items_list,
@@ -263,11 +271,12 @@ class CollectionService:
         return collection_elements
 
     @classmethod
-    async def get_collection_item_by_id(cls,
-                                        collection_id: int,
-                                        item_id: int,
-                                        user: User,
-                                        db: AsyncSession)->ModelCollectionItemScheme:
+    async def get_collection_item_by_id(
+            cls,
+            collection_id: int,
+            item_id: int,
+            user: User,
+            db: AsyncSession) -> ModelCollectionItemScheme:
         # TODO: дописать метод позже
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -278,11 +287,12 @@ class CollectionService:
         return collection_item_scheme
 
     @classmethod
-    async def get_collection_item_by_user_content_id(cls,
-                                                     collection_id: int,
-                                                     user_content_id: int,
-                                                     user: User,
-                                                     db: AsyncSession) -> ModelCollectionItemScheme:
+    async def get_collection_item_by_user_content_id(
+            cls,
+            collection_id: int,
+            user_content_id: int,
+            user: User,
+            db: AsyncSession) -> ModelCollectionItemScheme:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -297,12 +307,13 @@ class CollectionService:
         return collection_item_scheme
 
     @classmethod
-    async def update_collection_item_by_id(cls,
-                                           collection_id: int,
-                                           item_id: int,
-                                           update_collection_item_scheme: TextItemScheme,
-                                           user: User,
-                                           db: AsyncSession) -> ModelDataCollectionScheme:
+    async def update_collection_item_by_id(
+            cls,
+            collection_id: int,
+            item_id: int,
+            update_collection_item_scheme: TextItemScheme,
+            user: User,
+            db: AsyncSession) -> ModelDataCollectionScheme:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -328,12 +339,13 @@ class CollectionService:
         return collection_item_scheme
 
     @classmethod
-    async def update_collection_item_by_user_content_id(cls,
-                                                        collection_id: int,
-                                                        user_content_id: int,
-                                                        update_collection_item_scheme: TextItemScheme,
-                                                        user: User,
-                                                        db: AsyncSession) -> ModelDataCollectionScheme:
+    async def update_collection_item_by_user_content_id(
+            cls,
+            collection_id: int,
+            user_content_id: int,
+            update_collection_item_scheme: TextItemScheme,
+            user: User,
+            db: AsyncSession) -> ModelDataCollectionScheme:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -346,11 +358,12 @@ class CollectionService:
         return await cls.update_collection_item_by_id(collection_id, item_id, update_collection_item_scheme, user, db)
 
     @classmethod
-    async def delete_collection_item(cls,
-                                     collection_id: int,
-                                     item_id: int,
-                                     user: User,
-                                     db: AsyncSession) -> ModelCollectionItemScheme:
+    async def delete_collection_item(
+            cls,
+            collection_id: int,
+            item_id: int,
+            user: User,
+            db: AsyncSession) -> ModelCollectionItemScheme:
 
         data_collection = await CollectionUtil.get_collection(collection_id, db)
         await CollectionUtil.check_collection_owner(data_collection, user)
@@ -364,12 +377,13 @@ class CollectionService:
         return collection_item_scheme
 
     @classmethod
-    async def find_proxime_items(cls,
-                                 collection_id: int,
-                                 find_proxime_items_scheme: TextItemScheme,
-                                 save_proxime_items_scheme: SaveProximeItemsScheme,
-                                 user: User,
-                                 db: AsyncSession) -> ProximityResultScheme:
+    async def find_proxime_items(
+        cls,
+        collection_id: int,
+        find_proxime_items_scheme: TextItemScheme,
+        save_proxime_items_scheme: SaveProximeItemsScheme,
+        user: User,
+        db: AsyncSession) -> ProximityResultScheme:
 
         count = save_proxime_items_scheme.count
         limit_accuracy = save_proxime_items_scheme.limit_accuracy
@@ -379,7 +393,7 @@ class CollectionService:
 
         vector = EmbeddingUtil.calculate_embedding(find_proxime_items_scheme.content)
         nearest = vectorRep.find_nearest_by_vector(collection_name=data_collection.qdrant_table_name,
-                                                   limit=count+1,
+                                                   limit=count + 1,
                                                    vector=vector)
         filtered_result = []
         for item in nearest:
@@ -401,12 +415,13 @@ class CollectionService:
         return proximity_result_scheme
 
     @classmethod
-    async def find_proxime_items_by_id(cls,
-                                       collection_id: int,
-                                       item_id: int,
-                                       get_proxime_items_scheme: GetProximeItemsScheme,
-                                       user: User,
-                                       db: AsyncSession) -> ProximityResultScheme:
+    async def find_proxime_items_by_id(
+            cls,
+            collection_id: int,
+            item_id: int,
+            get_proxime_items_scheme: GetProximeItemsScheme,
+            user: User,
+            db: AsyncSession) -> ProximityResultScheme:
 
         collection_item = await cls.get_collection_item_by_id(
             collection_id=collection_id,
@@ -433,12 +448,13 @@ class CollectionService:
         return proximity_result_scheme
 
     @classmethod
-    async def find_proxime_items_by_user_content_id(cls,
-                                                    collection_id: int,
-                                                    user_content_id: int,
-                                                    get_proxime_items_scheme: GetProximeItemsScheme,
-                                                    user: User,
-                                                    db: AsyncSession) -> ProximityResultScheme:
+    async def find_proxime_items_by_user_content_id(
+            cls,
+            collection_id: int,
+            user_content_id: int,
+            get_proxime_items_scheme: GetProximeItemsScheme,
+            user: User,
+            db: AsyncSession) -> ProximityResultScheme:
 
         collection_item = await cls.get_collection_item_by_user_content_id(
             collection_id=collection_id,
