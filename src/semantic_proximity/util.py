@@ -11,6 +11,7 @@ from src.semantic_proximity.repository import (collectionRep,
                                                itemRep)
 
 from src.semantic_proximity.exception import (CollectionDoesNotExistException,
+                                              CollectionItemDoesNotExistException,
                                               InsuffucientAccessRightsException,
                                               WrongCollectionException,)
 
@@ -110,7 +111,7 @@ class FileUtil:
         return data
     
     @classmethod
-    def get_batches(cls, items: list, batch_size: int = 100) -> list:
+    def get_batches(cls, items: list, batch_size: int=100) -> list:
         batches = []
         for i in range(0, len(items), batch_size):
             batches.append(items[i:i + batch_size])
