@@ -66,6 +66,21 @@ class CollectionUtil:
         if collection.user_id != user.id:
             raise InsuffucientAccessRightsException(f"User {user.id} is not owner of collection {collection.id}")
 
+
+class ListUtil:
+
+    @classmethod
+    def get_batches(cls, items: list, batch_size: int=100) -> list:
+        batches = []
+        for i in range(0, len(items), batch_size):
+            batches.append(items[i:i + batch_size])
+        return batches
+    
+    @classmethod
+    def get_slice(cls, items: list, offset: int, limit: int) -> list:
+        return items[offset:offset + limit]
+
+
 class FileUtil:
 
     @classmethod
@@ -109,13 +124,6 @@ class FileUtil:
         df = df.with_columns(df['user_content_id'].cast(pl.String))
         data = df.to_dicts()
         return data
-    
-    @classmethod
-    def get_batches(cls, items: list, batch_size: int=100) -> list:
-        batches = []
-        for i in range(0, len(items), batch_size):
-            batches.append(items[i:i + batch_size])
-        return batches
 
     @classmethod
     def _default_reader(cls, file):

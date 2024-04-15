@@ -5,6 +5,7 @@ from src.auth.model import User
 from src.semantic_proximity.util import (EmbeddingUtil,
                                          SimilarityUtil,
                                          CollectionUtil,
+                                         ListUtil,
                                          FileUtil)
 
 from src.semantic_proximity.model import CollectionItem, DataCollection
@@ -222,7 +223,7 @@ class CollectionService:
         file_object = file.file
         items = file_handler(file_object)
         batch_size = FileConfig.get_batch_size()
-        batches = FileUtil.get_batches(items=items, batch_size=batch_size)
+        batches = ListUtil.get_batches(items=items, batch_size=batch_size)
         all_items_list = []
         for batch in batches:
             batch_items_list = []
@@ -259,7 +260,7 @@ class CollectionService:
         collection_items = await itemRep.get_all_by_field(field=CollectionItem.data_collection_id,
                                                           value=data_collection.id,
                                                           session=db)
-        collection_items = collection_items[offset:offset + limit]
+        collection_items = ListUtil.get_slice(collection_items, offset=offset, limit=limit)
         collection_items_list = ModelCollectionItemScheme.get_schemes_from_models(models=collection_items)
         items_num = len(collection_items_list)
         collection_elements = GetAllCollectionElementsScheme(
