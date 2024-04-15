@@ -118,10 +118,17 @@ class FileUtil:
 
     @classmethod
     def _default_reader(cls, file):
+        """По дефолту просто читает файл по строкам"""
         file_content = cls._convert_bytes_to_text(file)
-        return [{"content": item,
-                "user_content_id": None}
-                for item in file_content.split('\n') if item.strip()]
+        lines = file_content.split('\n')
+        data = list()
+        for line in lines:
+            if line.strip():
+                data.append({
+                    "content": line,
+                    "user_content_id": None
+                    })
+        return data
     
     @classmethod
     def _change_columns_to_lowercase(cls, data: pl.DataFrame):
