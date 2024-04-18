@@ -19,6 +19,7 @@ bcrypt = "4.1.2"
 qdrant-client = "1.7.3"
 python-multipart = "0.0.9"
 polars = {extras = ["all"] }
+redis = "5.0.3"
 
 
 [dev-packages]

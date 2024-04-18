@@ -2,6 +2,7 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.redis_repository import redisRep
 from src.auth.repository import roleRep, userRep
 from src.auth.scheme import ModelRoleScheme, ModelUserScheme, CreatingUserScheme, UpdatingUserScheme, TokensScheme, \
     LoginAuthScheme, RegisterAuthScheme
@@ -115,9 +116,6 @@ userServ = UserService()
 
 class AuthService:
     # TODO and FIXME: импортировать хранение токенов в redis (noSQL)
-    access_tokens = set()
-    refresh_tokens = set()
-    access_refresh_tokens = dict()
 
     @classmethod
     async def register(cls, register_auth_scheme: RegisterAuthScheme, db: AsyncSession) -> ModelUserScheme:
@@ -146,21 +144,21 @@ class AuthService:
         payload = model_user_scheme.model_dump()
         access_token, refresh_token = JwtUtil.create_tokens(payload)
         tokens_scheme = TokensScheme(access_token=access_token, refresh_token=refresh_token)
-        cls.access_tokens.add(access_token)
-        cls.refresh_tokens.add(refresh_token)
-        cls.access_refresh_tokens.update({access_token: refresh_token})
+        redisRep.add_element_to_set(f"access_tokens", value=access_token)
+        redisRep.add_element_to_set(f"refresh_tokens", value=refresh_token)
+        redisRep.add_item_to_dict(f"access_refresh_tokens", key=access_token, value=refresh_token)
         return tokens_scheme
 
     @classmethod
     async def logout(cls, access_token: str) -> None:
-        refresh_token = cls.access_refresh_tokens.get(access_token)
+        refresh_token = redisRep.get_value_from_dict("access_refresh_tokens", key=access_token)
 
         if not refresh_token:
             raise InvalidTokenException("Invalid access/refresh token pair")
 
-        del cls.access_refresh_tokens[access_token]
-        cls.refresh_tokens.remove(refresh_token)
-        cls.access_tokens.remove(access_token)
+        redisRep.remove_item_from_dict("access_refresh_tokens", key=access_token)
+        redisRep.remove_element_from_set("access_tokens", value=access_token)
+        redisRep.remove_element_from_set("refresh_tokens", value=refresh_token)
 
     @classmethod
     async def is_authenticated(cls, access_token: str) -> bool:
@@ -169,11 +167,11 @@ class AuthService:
         except Exception as e:
             logging.error(e)
             return False
-        return access_token in cls.access_tokens
+        return redisRep.get_set_element("access_tokens", access_token) is not None
 
     @classmethod
     async def get_user_by_token(cls, token: str, db: AsyncSession) -> User:
-        if token not in cls.access_tokens:
+        if redisRep.get_set_element("access_tokens", token) is None:
             raise InvalidTokenException("Access token is invalid")
         try:
             payload = JwtUtil.decode_token(token)
@@ -188,23 +186,23 @@ class AuthService:
     
     @classmethod
     async def update_access_token(cls, tokens: TokensScheme) -> TokensScheme:
-        if tokens.access_token not in cls.access_tokens:
+        if redisRep.get_set_element("access_tokens", tokens.access_token) is None:
             raise InvalidTokenException("Access token is invalid")
-        if tokens.refresh_token not in cls.refresh_tokens:
+        if redisRep.get_set_element("refresh_tokens", tokens.refresh_token) is None:
             raise InvalidTokenException("Refresh token is invalid")
         
-        cls.refresh_tokens.remove(tokens.refresh_token)
-        cls.access_tokens.remove(tokens.access_token)
-        del cls.access_refresh_tokens[tokens.access_token]
+        redisRep.remove_element_from_set("access_tokens", value=tokens.access_token)
+        redisRep.remove_element_from_set("refresh_tokens", value=tokens.refresh_token)
+        redisRep.remove_item_from_dict("access_refresh_tokens", key=tokens.access_token)
         try:
             user_data = JwtUtil.decode_token(tokens.refresh_token)
         except Exception as e:
             raise InvalidTokenException(f"Error while decoding refresh token: {e}")
         
         access_token, refresh_token = JwtUtil.create_tokens(user_data)
-        cls.access_tokens.add(access_token)
-        cls.refresh_tokens.add(refresh_token)
-        cls.access_refresh_tokens.update({access_token: refresh_token})
+        redisRep.add_element_to_set("access_tokens", value=access_token)
+        redisRep.add_element_to_set("refresh_tokens", value=refresh_token)
+        redisRep.add_item_to_dict("access_refresh_tokens", key=access_token, value=refresh_token)
         return TokensScheme(access_token=access_token, refresh_token=refresh_token)
 
 
