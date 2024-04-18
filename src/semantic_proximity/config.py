@@ -6,6 +6,7 @@ class QdrantConfig:
     _port: int = int(os.getenv('QDRANT_PORT', 6333))
     _vector_size: int = 768
     _distance_metric: Distance = Distance.COSINE
+    _timeout = 32
 
     @classmethod
     def get_host(cls) -> str:
@@ -26,6 +27,10 @@ class QdrantConfig:
     @classmethod
     def get_vector_config(cls) -> VectorParams:
         return VectorParams(size=cls._vector_size, distance=cls._distance_metric)
+    
+    @classmethod
+    def get_timeout(cls) -> int:
+        return cls._timeout
 
 
 class EmbeddingConfig:

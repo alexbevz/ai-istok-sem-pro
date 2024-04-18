@@ -304,7 +304,9 @@ class CollectionService:
         collection_item_scheme = ModelCollectionItemScheme.model_validate(collection_item,
                                                                             from_attributes=True)
         if collection_item_scheme.data_collection_id != collection_id:
-            raise WrongCollectionException(f"Item with id {user_content_id} doesn't belong to collection {collection_id}")
+            raise WrongCollectionException(
+                    f"Item with id {user_content_id} doesn't belong to collection {collection_id}"
+                    )
         return collection_item_scheme
 
     @classmethod

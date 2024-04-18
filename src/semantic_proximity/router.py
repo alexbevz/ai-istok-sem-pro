@@ -21,6 +21,7 @@ from fastapi import File, UploadFile
 class SemanticProximityRouter(APIRouter):
 
     def __init__(self):
+        # NOTE: подумать о добавлении RoleChecker
         super().__init__(prefix='/sps', tags=['Семантическая близость'])
         self.add_api_route(endpoint=self.find_proximity, path="/find", methods=['POST'])
 
