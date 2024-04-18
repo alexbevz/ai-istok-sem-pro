@@ -1,6 +1,7 @@
 import uuid
 from typing import Union
 
+from qdrant_client.models import PointStruct
 from sentence_transformers import SentenceTransformer
 from qdrant_client.local.distances import cosine_similarity, euclidean_distance, manhattan_distance
 
@@ -65,6 +66,19 @@ class CollectionUtil:
     async def check_collection_owner(cls, collection, user):
         if collection.user_id != user.id:
             raise InsuffucientAccessRightsException(f"User {user.id} is not owner of collection {collection.id}")
+    
+    @classmethod
+    async def create_point(cls, item_id: int, content: str) -> PointStruct:
+        vector = EmbeddingUtil.calculate_embedding(content)
+        payload = {
+            "content": content
+        }
+        point = PointStruct(
+            id=item_id,
+            payload=payload,
+            vector=vector
+        )
+        return point
 
 
 class ListUtil:
