@@ -210,7 +210,7 @@ class CollectionService:
 
         points = []
         for collection_item in collection_items:
-            point = CollectionUtil.create_point(
+            point = await CollectionUtil.create_point(
                 item_id=collection_item.id,
                 content=collection_item.content
             )
@@ -344,7 +344,7 @@ class CollectionService:
                                                session=db)
         collection_name = data_collection.qdrant_table_name
 
-        point = CollectionUtil.create_point(
+        point = await CollectionUtil.create_point(
             item_id=collection_item.id,
             content=update_collection_item_scheme.content,
         )
