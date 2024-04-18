@@ -122,6 +122,7 @@ exception_handlers = {
     TeapotException:                    teapot_exception_handler,
     CrudException:                      crud_exception_handler,
     UserNotAuthorizedException:         user_not_authorized_exception_handler,
+    UserDoesNotExistException:          user_does_not_exist_exception_handler,
     InvalidAccessTokenException:        invalid_access_token_exception_handler,
     InvalidCredentialsException:        invalide_credentials_exception_handler,
     HttpForbiddenException:             http_forbidden_exception_handler,
