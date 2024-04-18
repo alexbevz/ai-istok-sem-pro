@@ -24,6 +24,7 @@ class CrudRepository:
 
     @classmethod
     async def create(cls, *, model: Any, session: AsyncSession) -> Any:
+        # FIXME: Реализовать адекватные исключения
         try:
             session.add(model)
             await session.flush()
@@ -34,6 +35,7 @@ class CrudRepository:
 
     @classmethod
     async def create_all(cls, *, models: list[Any], session: AsyncSession) -> list[Any]:
+        # FIXME: Реализовать адекватные исключения
         try:
             session.add_all(models)
             await session.flush()
@@ -45,6 +47,7 @@ class CrudRepository:
 
     @classmethod
     async def get_by_id(cls, *, model_id: int, session: AsyncSession) -> Any:
+        # FIXME: Реализовать адекватные исключения
         try:
             model = await session.get(cls._cls_model, model_id)
             return model
@@ -53,6 +56,7 @@ class CrudRepository:
 
     @classmethod
     async def get_by_unique_field(cls, *, field: Any, value: Any, session: AsyncSession) -> Any:
+        # FIXME: Реализовать адекватные исключения
         query = select(cls._cls_model).where(field == value).execution_options(synchronize_session="fetch")
         try:
             model = await session.execute(query)
@@ -62,6 +66,7 @@ class CrudRepository:
 
     @classmethod
     async def get_all_by_id(cls, *, models_id: list[int], session: AsyncSession) -> list[Any]:
+        # FIXME: Реализовать адекватные исключения
         query = select(cls._cls_model).where(cls._cls_model.id.in_(models_id))
         try:
             models = await session.execute(query)
@@ -71,6 +76,7 @@ class CrudRepository:
 
     @classmethod
     async def get_all_by_field(cls, field: Any, value: Any, session: AsyncSession) -> list[Any]:
+        # FIXME: Реализовать адекватные исключения
         query = select(cls._cls_model).where(field == value).execution_options(synchronize_session="fetch")
         try:
             models = await session.execute(query)
@@ -80,6 +86,7 @@ class CrudRepository:
 
     @classmethod
     async def get_all(cls, *, page: Page, session: AsyncSession) -> list[Any]:
+        # FIXME: Реализовать адекватные исключения
         query = select(cls._cls_model).offset(page.offset).limit(page.limit)
         try:
             models = await session.execute(query)
@@ -89,6 +96,7 @@ class CrudRepository:
 
     @classmethod
     async def update(cls, *, model: Any, session: AsyncSession) -> Any:
+        # FIXME: Реализовать адекватные исключения
         try:
             session.add(model)
             await session.flush()
@@ -98,6 +106,7 @@ class CrudRepository:
 
     @classmethod
     async def delete_by_id(cls, *, model_id: int, session: AsyncSession) -> Any:
+        # FIXME: Реализовать адекватные исключения
         try:
             model = await session.get(cls._cls_model, model_id)
             await session.delete(model)
@@ -108,6 +117,7 @@ class CrudRepository:
 
     @classmethod
     async def delete(cls, *, model: Any, session: AsyncSession) -> Any:
+        # FIXME: Реализовать адекватные исключения
         try:
             await session.delete(model)
             await session.flush()
@@ -117,6 +127,7 @@ class CrudRepository:
 
     @classmethod
     async def delete_all_by_id(cls, *, models_id: list[int], session: AsyncSession) -> list[Any]:
+        # FIXME: Реализовать адекватные исключения
         try:
             models = []
             for model_id in models_id:
@@ -132,6 +143,7 @@ class CrudRepository:
 
     @classmethod
     async def delete_all_by_field(cls, field: Any, value: Any, session: AsyncSession) -> list[Any]:
+        # FIXME: Реализовать адекватные исключения
         try:
             models = []
             result = await session.execute(select(cls._cls_model).where(field == value))
@@ -144,18 +156,3 @@ class CrudRepository:
         except IntegrityError as e:
             raise CrudException(e)
 
-    #
-    # async def search(self, **filters: Any) -> list[Any]:
-    #     """search by fields values"""
-    #     conditions = [
-    #         field == val
-    #         for key, val in filters.items()
-    #         if (field := inspect(self._cls_model).columns.get(key)) is not None
-    #     ]
-    #     query = (
-    #         select(self._cls_model)
-    #         .where(*conditions)
-    #         .execution_options(synchronize_session="fetch")
-    #     )
-    #     rows = await self._session.execute(query)
-    #     return rows.scalars().unique().all()
