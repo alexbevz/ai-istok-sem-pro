@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependency import get_current_user, RoleChecker, oauth2_scheme
 from src.auth.model import User
-from src.auth.scheme import TokensScheme, UpdatingUserScheme, LoginAuthScheme, RegisterAuthScheme
+from src.auth.scheme import TokensScheme, UpdatingUserScheme, LoginAuthScheme, RegisterAuthScheme, ModelUserScheme
 from src.auth.service import roleServ, userServ, authServ
 from src.database import get_session_db
 from src.scheme import PageScheme
@@ -19,12 +19,12 @@ class RoleRouter(APIRouter):
         self.add_api_route(endpoint=self.get_all, path='/all', methods=['GET'])
 
     @classmethod
-    async def get_all(cls, db: AsyncSession = Depends(get_session_db)):
-        """Получение всех ролей
+    async def get_all(cls, db: AsyncSession = Depends(get_session_db))->ModelUserScheme:
+        """# Получение всех ролей
 
-        Args:
+        ## Args:
             
-        Returns:
+        ## Returns:
             ModelRoleScheme: схема ролей
         """
         roles_schema = await roleServ.get_model_scheme_all(db)
@@ -44,38 +44,38 @@ class UserRouter(APIRouter):
 
 
     @classmethod
-    async def get_me(cls, user: Annotated[User, Depends(get_current_user)], db: AsyncSession = Depends(get_session_db)):
-        """Получение информации о текущем пользователе
+    async def get_me(cls, user: Annotated[User, Depends(get_current_user)], db: AsyncSession = Depends(get_session_db))->ModelUserScheme:
+        """# Получение информации о текущем пользователе
 
-        Args:
+        ## Args:
 
-        Returns:
+        ## Returns:
             ModelUserScheme: схема пользователя
         """
         got_user = await userServ.get_model_scheme_by_id(user.id, db)
         return got_user
 
     @classmethod
-    async def get_all(cls, page_scheme: PageScheme = Depends(), db: AsyncSession = Depends(get_session_db)):
-        """Получение всех пользователей
+    async def get_all(cls, page_scheme: PageScheme = Depends(), db: AsyncSession = Depends(get_session_db))->list[ModelUserScheme]:
+        """# Получение всех пользователей
 
-        Args:
+        ## Args:
             page_scheme (PageScheme, optional): Схема для получения размера вывода. Defaults to Depends().
 
-        Returns:
+        ## Returns:
             list[ModelUserScheme]: Список схем пользователей
         """
         got_users = await userServ.get_model_scheme_all(page_scheme, db)
         return got_users
 
     @classmethod
-    async def get_by_id(cls, user_id: int, db: AsyncSession = Depends(get_session_db)):
-        """Получение пользователя по id
+    async def get_by_id(cls, user_id: int, db: AsyncSession = Depends(get_session_db))->ModelUserScheme:
+        """# Получение пользователя по id
 
-        Args:
+        ## Args:
             user_id (int): id пользователя
 
-        Returns:
+        ## Returns:
             ModelUserScheme: схема пользователя
         """
         got_user = await userServ.get_model_scheme_by_id(user_id, db)
@@ -83,27 +83,27 @@ class UserRouter(APIRouter):
 
     @classmethod
     async def update_by_id(cls, user_id: int, updated_user_schema: UpdatingUserScheme,
-                           db: AsyncSession = Depends(get_session_db)):
-        """Обновление пользователя по id
+                           db: AsyncSession = Depends(get_session_db))->ModelUserScheme:
+        """# Обновление пользователя по id
 
-        Args:
+        ## Args:
             user_id (int): id пользователя
             updated_user_schema (UpdatingUserScheme): схема обновления пользователя
 
-        Returns:
+        ## Returns:
             ModelUserScheme: схема пользователя
         """
         updated_user = await userServ.update_by_id_and_get_model_scheme(user_id, updated_user_schema, db)
         return updated_user
 
     @classmethod
-    async def delete_by_id(cls, user_id: int, db: AsyncSession = Depends(get_session_db)):
-        """Удаление пользователя по id
+    async def delete_by_id(cls, user_id: int, db: AsyncSession = Depends(get_session_db))->ModelUserScheme:
+        """# Удаление пользователя по id
 
-        Args:
+        ## Args:
             user_id (int): ID пользователя
             
-        Returns:
+        ## Returns:
             ModelUserScheme: схема пользователя
         """
         deleted_user = await userServ.delete_by_id_and_get_model_scheme(user_id, db)
@@ -122,39 +122,40 @@ class AuthRouter(APIRouter):
         self.add_api_route(endpoint=self.logout, path='/logout', methods=['POST'], )
 
     @classmethod
-    async def register(cls, register_auth_scheme: RegisterAuthScheme, role = Depends(RoleChecker(required_roles={"admin"})), db: AsyncSession = Depends(get_session_db)):
-        """Регистрация пользователя
+    async def register(cls, register_auth_scheme: RegisterAuthScheme, role = Depends(RoleChecker(required_roles={"admin"})), 
+                       db: AsyncSession = Depends(get_session_db))->ModelUserScheme:
+        """# Регистрация пользователя
 
-        Args:
+        ## Args:
             register_auth_scheme (RegisterAuthScheme): Cхема регистрации пользователя
 
-        Returns:
+        ## Returns:
             ModelUserScheme: Схема пользователя
         """
         model_user_scheme = await authServ.register(register_auth_scheme, db)
         return model_user_scheme
 
     @classmethod
-    async def login(cls, login_auth_scheme: LoginAuthScheme, db: AsyncSession = Depends(get_session_db)):
-        """Авторизация пользователя
+    async def login(cls, login_auth_scheme: LoginAuthScheme, db: AsyncSession = Depends(get_session_db))->TokensScheme:
+        """# Авторизация пользователя
 
-        Args:
+        ## Args:
             login_auth_scheme (LoginAuthScheme): Схема авторизации пользователя
 
-        Returns:
+        ## Returns:
             TokensScheme: Схема токенов
         """
         tokens_scheme = await authServ.login(login_auth_scheme, db)
         return tokens_scheme
     
     @classmethod
-    async def login_form(cls, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncSession = Depends(get_session_db)):
-        """Авторизация пользователя через форму
+    async def login_form(cls, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncSession = Depends(get_session_db))->TokensScheme:
+        """# Авторизация пользователя через форму
 
-        Args:
+        ## Args:
             form_data (Annotated[OAuth2PasswordRequestForm, Depends): Форма авторизации
 
-        Returns:
+        ## Returns:
             TokensScheme: Схема токенов
         """
         log_shem=LoginAuthScheme(username=form_data.username, password=form_data.password)
@@ -162,33 +163,33 @@ class AuthRouter(APIRouter):
         return tokens_scheme
 
     @classmethod
-    async def check(cls, token: Annotated[str, Depends(oauth2_scheme)]):
-        """Проверка токена
+    async def check(cls, token: Annotated[str, Depends(oauth2_scheme)])->None:
+        """# Проверка токена
 
-        Args:
-            token (Annotated[str, Depends): _description_
+        ## Args:
+            token (str): access token
         """
         await authServ.is_authenticated(token)
 
     @classmethod
     async def update_access_token(cls, tokens: TokensScheme) -> TokensScheme:
-        """Обновление токена
+        """# Обновление токена
 
-        Args:
+        ## Args:
             tokens (TokensScheme): Схема токенов
 
-        Returns:
+        ## Returns:
             TokensScheme: Перегенерированые токины
         """
         new_access_refresh = await authServ.update_access_token(tokens)
         return new_access_refresh 
 
     @classmethod
-    async def logout(cls, token: Annotated[str, Depends(oauth2_scheme)]):
-        """Выход из аккаунта
+    async def logout(cls, token: Annotated[str, Depends(oauth2_scheme)])->None:
+        """# Выход из аккаунта
 
-        Args:
-            token (Annotated[str, Depends): access token
+        ## Args:
+            token (str): access token
         """
         await authServ.logout(token)
 
