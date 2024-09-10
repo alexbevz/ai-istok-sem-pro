@@ -56,7 +56,7 @@ services:
       - ./db_apps/qdrant:/qdrant/storage:z
     ports:
       - "${QDRANT_PORT}:6333"
-      - "6334:6334"
+        # - "6334:6334"
     environment:
       NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
       no_proxy: localhost,service_db_qdrant,service_db_postgres,api
