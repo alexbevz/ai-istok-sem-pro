@@ -14,7 +14,7 @@ services:
       NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
       no_proxy: localhost,service_db_qdrant,service_db_postgres,api
     volumes:
-      - ./db_apps/postgres:/var/lib/postgresql/data:z
+      - ./db_apps/postgres:/var/lib/postgresql
 
   api:
     container_name: api_sem

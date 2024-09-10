@@ -15,7 +15,8 @@ from src.semantic_proximity.scheme import (ProximityItemsScheme,
                                            SaveProximeItemsScheme,
                                            ModelCollectionItemScheme,
                                            ModelDataCollectionScheme,
-                                           GetDataCollectionScheme)
+                                           GetDataCollectionScheme,
+                                           ProximityResultScheme)
 
 from src.scheme import PageScheme
 
@@ -74,7 +75,7 @@ class SemanticProximityRouter(APIRouter):
 
 
     @classmethod
-    async def find_proximity(cls, proximity_request_scheme: ProximityItemsScheme)->ProximityItemsScheme:
+    async def find_proximity(cls, proximity_request_scheme: ProximityItemsScheme) -> ProximityResultScheme:
         """# Единоразовый поиск семантической близости (без коллекции)
 
         ## Args:
