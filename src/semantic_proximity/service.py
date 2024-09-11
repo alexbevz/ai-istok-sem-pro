@@ -76,9 +76,10 @@ class ProximityService:
     @classmethod
     async def calculate_embedding(
             cls,
-            content: str
+            content: TextItemScheme
         ) -> EmbeddingScheme:
-        return EmbeddingScheme(vector=EmbeddingUtil.calculate_embedding(content))
+        vector = EmbeddingUtil.calculate_embedding(content.content)
+        return EmbeddingScheme(vector=vector)
 
 proximityServ = ProximityService()
 

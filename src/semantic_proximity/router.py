@@ -56,7 +56,7 @@ class SemanticProximityRouter(APIRouter):
         self.add_api_route(endpoint=self.find_proxime_items_by_user_content_id, path="/collections/{collection_id}/items/content/{user_content_id}/find", methods=['POST'])
 
     @classmethod
-    async def calculate_embedding(cls, content: str) -> EmbeddingScheme:
+    async def calculate_embedding(cls, content: TextItemScheme) -> EmbeddingScheme:
         return await proximityServ.calculate_embedding(content)
 
     @classmethod
