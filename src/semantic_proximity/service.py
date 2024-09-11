@@ -78,7 +78,7 @@ class ProximityService:
             cls,
             content: str
         ) -> EmbeddingScheme:
-        return EmbeddingScheme(EmbeddingUtil.calculate_embedding(content))
+        return EmbeddingScheme(vector=EmbeddingUtil.calculate_embedding(content))
 
 proximityServ = ProximityService()
 
