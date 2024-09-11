@@ -1,14 +1,16 @@
 FROM savyaznikov/cuda12.1-cudnn8-python3.11:latest
 
-RUN pip install pipenv
+#RUN pip install pipenv
 
 ENV PIPENV_VENV_IN_PROJECT=1
 WORKDIR /app
 
-COPY ./Pipfile .
+#COPY ./Pipfile .
+COPY ./requirements.txt .
 RUN python3.11 -m pip install --upgrade pip
 
-RUN pipenv install
+#RUN pipenv install --verbose
+RUN python3.11 -m pip install -r requirements.txt
 
 COPY ./alembic ./alembic
 COPY ./src ./src
