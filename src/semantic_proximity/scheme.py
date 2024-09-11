@@ -1,6 +1,10 @@
 from src.scheme import BaseScheme
 from typing import Optional
 
+class EmbeddingScheme(BaseScheme):
+    """Схема эмбеддинга"""
+    vector: list[float]
+
 class BaseDataCollectionScheme(BaseScheme):
     """Базовая схема коллекции"""
     user_id: int                                # ID пользователя

@@ -17,6 +17,7 @@ from src.semantic_proximity.repository import (
 )
 
 from src.semantic_proximity.scheme import (
+    EmbeddingScheme,
     BaseDataCollectionScheme,
     BaseCollectionItemScheme,
     ModelDataCollectionScheme,
@@ -71,6 +72,13 @@ class ProximityService:
             compared_items_result=similarity_items
         )
 
+
+    @classmethod
+    async def calculate_embedding(
+            cls,
+            content: str
+        ) -> EmbeddingScheme:
+        return EmbeddingScheme(EmbeddingUtil.calculate_embedding(content))
 
 proximityServ = ProximityService()
 
