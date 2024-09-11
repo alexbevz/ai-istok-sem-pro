@@ -76,11 +76,16 @@ class ProximityService:
     @classmethod
     async def calculate_embedding(
             cls,
-            content: TextItemScheme
-        ) -> EmbeddingScheme:
-        vector = EmbeddingUtil.calculate_embedding(content.content)
-        return EmbeddingScheme(vector=vector)
-
+            content: TextItemScheme|list[TextItemScheme]
+        ) -> list[EmbeddingScheme]:
+        embeddings = list()
+        content_list = [item.content for item in content] if isinstance(content, list) else [content.content]
+        vectors = EmbeddingUtil.calculate_embedding(content_list)
+        for vector in vectors:
+            embeddings.append(EmbeddingScheme(vector=vector))
+        return embeddings
+    
+    
 proximityServ = ProximityService()
 
 class CollectionService:
