@@ -7,6 +7,8 @@ services:
       - "${DB_PORT}:5432"
     env_file:
       - .env
+    networks:
+      - postgres-network
     environment:
       POSTGRES_DB: ${PG_DATABASE_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -57,6 +59,8 @@ services:
     ports:
       - "${QDRANT_PORT}:6333"
         # - "6334:6334"
+    networks:
+      - qdrant-network
     environment:
       NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
       no_proxy: localhost,service_db_qdrant,service_db_postgres,api
@@ -65,8 +69,18 @@ services:
     container_name: db_redis
     image: redis
     restart: always
+    networks:
+      - redis-network
     environment:
       NO_PROXY: localhost,service_db_qdrant,service_db_postgres,api
       no_proxy: localhost,service_db_qdrant,service_db_postgres,api
     ports:
       - "${REDIS_PORT}:6379"
+
+networks:
+  qdrant-network:
+    external: true
+  postgres-network:
+    external: true
+  redis-network:
+    external: true
