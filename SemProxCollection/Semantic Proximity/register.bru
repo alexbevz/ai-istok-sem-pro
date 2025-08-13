@@ -1,0 +1,27 @@
+meta {
+  name: register
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v0/auth/register
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "username": "pakotlyarov",
+      "password": "qwe123",
+      "email": "pakotlyarov@istokmw.ru"
+  }
+}
+
+tests {
+  // 
+}

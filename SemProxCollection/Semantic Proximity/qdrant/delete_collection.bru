@@ -1,0 +1,19 @@
+meta {
+  name: delete_collection
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{qdrant_url}}/collections/{{collection_name}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  collection_name: user_1_test
+}

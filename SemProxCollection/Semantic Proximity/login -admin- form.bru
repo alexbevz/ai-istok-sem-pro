@@ -1,0 +1,41 @@
+meta {
+  name: login -admin- form
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v0/auth/login/form
+  body: formUrlEncoded
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "username": "admin",
+      "password": "admin"
+  }
+}
+
+body:form-urlencoded {
+  username: admin
+  password: admin
+}
+
+script:post-response {
+  let jsonData = res.body;
+  let access_token = jsonData.access_token;
+  let refresh_token = jsonData.refresh_token;
+  bru.setEnvVar("token", access_token);
+  bru.setEnvVar("refresh_token", refresh_token);
+}
+
+tests {
+  // let jsonData = JSON.parse(responseBody);
+  // pm.collectionVariables.set("token", jsonData.access_token);
+  // pm.collectionVariables.set("refresh_token", jsonData.refresh_token);
+}

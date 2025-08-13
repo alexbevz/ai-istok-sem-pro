@@ -1,0 +1,26 @@
+meta {
+  name: update collection item by id
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/{{item_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "content": "Плазма"
+  }
+}
+
+vars:pre-request {
+  collection_id: 1
+  item_id: 1
+}

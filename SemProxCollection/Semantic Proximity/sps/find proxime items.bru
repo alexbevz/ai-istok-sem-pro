@@ -1,0 +1,31 @@
+meta {
+  name: find proxime items
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/find?save=false&count=10&limit_accuracy=0.1
+  body: json
+  auth: bearer
+}
+
+query {
+  save: false
+  count: 10
+  limit_accuracy: 0.1
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "content": "Огонь"
+  }
+}
+
+vars:pre-request {
+  collection_id: 1
+}

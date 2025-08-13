@@ -1,0 +1,31 @@
+meta {
+  name: add collection items
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/batch
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  [
+    {
+      "content": "Молния",
+      "user_content_id": "42"
+    },
+    {
+      "content": "Плазма"
+    }
+  ]
+}
+
+vars:pre-request {
+  collection_id: 1
+}

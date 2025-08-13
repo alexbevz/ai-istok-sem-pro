@@ -1,0 +1,25 @@
+meta {
+  name: update collection
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+      "name": "test2"
+  }
+}
+
+vars:pre-request {
+  collection_id: 1
+}

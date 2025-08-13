@@ -1,0 +1,30 @@
+meta {
+  name: max batch size
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{base_url}}/api/v0/sps/collections/{{collection_id}}/items/batch
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  collection_id: 1
+}
+
+script:pre-request {
+  let array = []
+  for(let i = 0; i<501; i++){
+    let content = {
+      "content": `item_${i}`
+    }
+    array.push(content)
+  }
+  req.setBody(array)
+}
